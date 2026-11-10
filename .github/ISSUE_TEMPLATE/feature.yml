@@ -1,0 +1,27 @@
+name: Funcionalidade
+description: Item de produto ou melhoria técnica do VMS Finance
+title: "[Feature] "
+labels: ["type:feature"]
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Resultado esperado
+      description: Qual resultado verificável esta issue deve entregar?
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Critérios de aceite
+      placeholder: "- [ ] ..."
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área
+      options: [API, App, Sincronização, Infraestrutura, Segurança, Produto]
+    validations:
+      required: true
+

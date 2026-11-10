@@ -1,0 +1,9 @@
+# Exemplo somente. Não contém tunnel ID, credenciais ou segredo.
+# Só copie para a configuração real depois de autenticação e HTTPS validados.
+tunnel: REPLACE_WITH_TUNNEL_ID
+credentials-file: C:\\replace\\with\\tunnel-credentials.json
+ingress:
+  - hostname: api.crowrvo.com.br
+    service: http://127.0.0.1:5080
+  - service: http_status:404
+

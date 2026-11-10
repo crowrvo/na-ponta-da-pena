@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/backend/">
+    <Project Path="src/backend/VmsFinance.Api/VmsFinance.Api.csproj" />
+    <Project Path="src/backend/VmsFinance.Application/VmsFinance.Application.csproj" />
+    <Project Path="src/backend/VmsFinance.Domain/VmsFinance.Domain.csproj" />
+    <Project Path="src/backend/VmsFinance.Infrastructure/VmsFinance.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/" />
+  <Folder Name="/tests/backend/">
+    <Project Path="tests/backend/VmsFinance.Api.Tests/VmsFinance.Api.Tests.csproj" />
+  </Folder>
+</Solution>
