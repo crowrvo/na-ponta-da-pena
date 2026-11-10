@@ -105,6 +105,73 @@ public sealed class FinanceService(IFinanceRepository repository, TimeProvider t
         return new CreatedEntryResult(ToSummary(entry), true);
     }
 
+    public async Task<SyncEntriesResult> SyncEntriesAsync(
+        Guid householdId,
+        string userId,
+        IReadOnlyList<SyncEntryCommand> commands,
+        CancellationToken cancellationToken)
+    {
+        await RequireMembershipAsync(householdId, userId, cancellationToken);
+        if (commands.Count is < 1 or > 100)
+        {
+            throw new ArgumentOutOfRangeException(nameof(commands), "A sync batch must contain between 1 and 100 entries.");
+        }
+
+        var results = new List<SyncedEntryResult>(commands.Count);
+        var entriesByKey = new Dictionary<string, FinanceEntry>(StringComparer.Ordinal);
+        var entryIds = new HashSet<Guid>();
+        var pendingEntries = new List<FinanceEntry>();
+
+        foreach (var command in commands)
+        {
+            if (!entryIds.Add(command.Id))
+            {
+                throw new ArgumentException("An entry id may appear only once in a sync batch.", nameof(commands));
+            }
+
+            var key = command.IdempotencyKey?.Trim()
+                ?? throw new ArgumentException("Idempotency key is required.", nameof(commands));
+            if (!entriesByKey.TryGetValue(key, out var existing))
+            {
+                existing = await repository.GetEntryByIdempotencyKeyAsync(householdId, key, cancellationToken);
+            }
+
+            if (existing is not null)
+            {
+                EnsureIdempotentMatch(existing, command);
+                entriesByKey[key] = existing;
+                results.Add(new SyncedEntryResult(existing.Id, key, false, existing.Version));
+                continue;
+            }
+
+            var entry = new FinanceEntry(
+                command.Id,
+                householdId,
+                command.Direction,
+                command.AmountInCents,
+                command.Description,
+                command.OccurredOn,
+                key,
+                timeProvider.GetUtcNow());
+
+            entriesByKey[key] = entry;
+            pendingEntries.Add(entry);
+            results.Add(new SyncedEntryResult(entry.Id, key, true, entry.Version));
+        }
+
+        foreach (var entry in pendingEntries)
+        {
+            await repository.AddEntryAsync(entry, cancellationToken);
+        }
+
+        if (pendingEntries.Count > 0)
+        {
+            await repository.SaveChangesAsync(cancellationToken);
+        }
+
+        return new SyncEntriesResult(results);
+    }
+
     public async Task<MonthlyEntriesResult> GetMonthlyEntriesAsync(
         Guid householdId,
         string userId,
@@ -155,6 +222,18 @@ public sealed class FinanceService(IFinanceRepository repository, TimeProvider t
         entry.OccurredOn,
         entry.Version,
         entry.UpdatedAtUtc);
+
+    private static void EnsureIdempotentMatch(FinanceEntry existing, SyncEntryCommand command)
+    {
+        if (existing.Id != command.Id ||
+            existing.Direction != command.Direction ||
+            existing.AmountInCents != command.AmountInCents ||
+            existing.Description != command.Description?.Trim() ||
+            existing.OccurredOn != command.OccurredOn)
+        {
+            throw new IdempotencyConflictException("The idempotency key was already used with different data.");
+        }
+    }
 
     private static void EnsureUser(string userId)
     {

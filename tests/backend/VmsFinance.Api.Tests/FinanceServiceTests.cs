@@ -114,6 +114,102 @@ public sealed class FinanceServiceTests
         Assert.DoesNotContain(repository.Members, member => member.UserId == "new-member");
     }
 
+    [Fact]
+    public async Task SyncEntries_persists_a_batch_once_and_marks_a_retry_as_duplicate()
+    {
+        var repository = new FakeFinanceRepository();
+        var household = repository.AddHousehold("owner");
+        var service = CreateService(repository);
+        var commands = new[]
+        {
+            Command("operation-1", EntryDirection.Income, 300_000),
+            Command("operation-2", EntryDirection.Expense, 85_000),
+        };
+
+        var first = await service.SyncEntriesAsync(household.Id, "owner", commands, CancellationToken.None);
+        var retry = await service.SyncEntriesAsync(household.Id, "owner", commands, CancellationToken.None);
+
+        Assert.All(first.Results, result => Assert.True(result.Created));
+        Assert.All(retry.Results, result => Assert.False(result.Created));
+        Assert.Equal(2, repository.Entries.Count);
+        Assert.Equal(1, repository.SaveCount);
+    }
+
+    [Fact]
+    public async Task SyncEntries_is_atomic_when_a_later_operation_conflicts()
+    {
+        var repository = new FakeFinanceRepository();
+        var household = repository.AddHousehold("owner");
+        var existing = Command("operation-existing", EntryDirection.Expense, 500);
+        var service = CreateService(repository);
+        await service.SyncEntriesAsync(household.Id, "owner", [existing], CancellationToken.None);
+        var countBeforeConflict = repository.Entries.Count;
+        var savesBeforeConflict = repository.SaveCount;
+
+        var conflicting = existing with { AmountInCents = 501 };
+        await Assert.ThrowsAsync<IdempotencyConflictException>(() => service.SyncEntriesAsync(
+            household.Id,
+            "owner",
+            [Command("operation-new", EntryDirection.Income, 1_000), conflicting],
+            CancellationToken.None));
+
+        Assert.Equal(countBeforeConflict, repository.Entries.Count);
+        Assert.Equal(savesBeforeConflict, repository.SaveCount);
+    }
+
+    [Fact]
+    public async Task SyncEntries_rejects_non_members_before_processing_the_batch()
+    {
+        var repository = new FakeFinanceRepository();
+        var household = repository.AddHousehold("owner");
+        var service = CreateService(repository);
+
+        await Assert.ThrowsAsync<HouseholdAccessDeniedException>(() => service.SyncEntriesAsync(
+            household.Id,
+            "intruder",
+            [Command("operation-1", EntryDirection.Expense, 1_000)],
+            CancellationToken.None));
+
+        Assert.Empty(repository.Entries);
+    }
+
+    [Fact]
+    public async Task SyncEntries_rejects_empty_and_oversized_batches()
+    {
+        var repository = new FakeFinanceRepository();
+        var household = repository.AddHousehold("owner");
+        var service = CreateService(repository);
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => service.SyncEntriesAsync(
+            household.Id, "owner", [], CancellationToken.None));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => service.SyncEntriesAsync(
+            household.Id,
+            "owner",
+            Enumerable.Range(1, 101).Select(index => Command($"operation-{index}", EntryDirection.Expense, index)).ToArray(),
+            CancellationToken.None));
+
+        Assert.Empty(repository.Entries);
+    }
+
+    [Fact]
+    public async Task SyncEntries_rejects_a_duplicate_entry_id_before_persisting()
+    {
+        var repository = new FakeFinanceRepository();
+        var household = repository.AddHousehold("owner");
+        var service = CreateService(repository);
+        var first = Command("operation-1", EntryDirection.Expense, 100);
+        var duplicateId = Command("operation-2", EntryDirection.Expense, 200) with { Id = first.Id };
+
+        await Assert.ThrowsAsync<ArgumentException>(() => service.SyncEntriesAsync(
+            household.Id, "owner", [first, duplicateId], CancellationToken.None));
+
+        Assert.Empty(repository.Entries);
+        Assert.Equal(0, repository.SaveCount);
+    }
+
+    private static SyncEntryCommand Command(string key, EntryDirection direction, long amountInCents) =>
+        new(Guid.NewGuid(), direction, amountInCents, "Synced entry", new DateOnly(2026, 11, 10), key);
+
     private static FinanceService CreateService(IFinanceRepository repository) =>
         new(repository, new FixedTimeProvider(Now));
 

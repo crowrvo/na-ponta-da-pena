@@ -37,12 +37,18 @@ Concluir o VMS Finance de ponta a ponta, incluindo arquitetura, organização, f
 - GitHub Project completado com os campos `Priority` e `Area`; as 7 Issues foram classificadas e a Issue `#7` permanece `Todo`, P2 e bloqueada pelos gates de segurança.
 - Ferramenta local `dotnet-ef` 10.0.4 versionada e migração `InitialCreate` gerada. A modelagem ganhou chave estrangeira de lançamentos para famílias e limite de 100 caracteres para a chave idempotente.
 - A migração foi validada por compilação/model generation, mas não aplicada: não há PostgreSQL ativo em `localhost:5432`. Nenhuma API ou túnel foi publicado.
+- Retomada automática de 2026-11-10 18:41 (America/Sao_Paulo): repositório confirmado limpo no commit `e9c7e0a`; GitHub Project íntegro com 7 Issues. Em andamento a Issue `#4`, dividida entre contrato batch autenticado na Minimal API e consumidor da outbox no Flutter.
+- Contrato de sincronização implementado: `POST /api/households/{householdId}/sync/entries`, lote de 1 a 100 operações, enum textual camelCase, `DateOnly` em `yyyy-MM-dd`, isolamento por família e resultado por chave idempotente.
+- O backend faz preflight do lote antes de persistir, aceita retry idêntico sem duplicar e rejeita conflito com HTTP 409 sem gravar itens novos. O endpoint exige autenticação; teste HTTP confirma 401 sem token.
+- O Flutter agora agrupa a outbox por família, usa token por abstração de armazenamento seguro, envia lotes, confirma SQLite em transação, aplica backoff exponencial e trata conflito/payload inválido sem perder o lançamento local.
+- Robustez validada: 401/403 não entram em retry, respostas parciais/extras/duplicadas são recusadas antes do ack, erros persistidos são códigos genéricos e um guard evita sincronizações concorrentes.
+- Validação desta retomada: `dotnet test` com 12 testes; `flutter analyze` limpo; `flutter test` com 10 testes; nenhuma publicação externa.
 
 ## Próxima ação
 
-1. Implementar o contrato de sincronização entre outbox Flutter e Minimal API, com envio em lote autenticado, confirmação e retry.
-2. Adicionar testes de persistência PostgreSQL assim que uma instância local estiver disponível e aplicar a migração `InitialCreate`.
-3. Completar convites/entrada/revogação de membros e documentar a escolha do provedor OIDC.
+1. Integrar o disparo do `FinanceSyncService` ao Cubit/conectividade e expor estados de sincronização na interface, sem iniciar o túnel.
+2. Completar convites/entrada/revogação de membros e documentar a escolha do provedor OIDC; só então conectar o login real ao `AccessTokenProvider`.
+3. Adicionar testes de persistência PostgreSQL assim que uma instância local estiver disponível e aplicar a migração `InitialCreate`.
 4. Atualizar Issues e Project conforme os resultados; manter a Issue `#7` bloqueada até HTTPS e autenticação estarem implementados e validados.
 
 ## Restrições permanentes

@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using System.Security.Claims;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using VmsFinance.Application;
 using VmsFinance.Application.Common;
 using VmsFinance.Application.Finance;
@@ -11,6 +13,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHealthChecks();
 builder.Services.AddProblemDetails();
+builder.Services.ConfigureHttpJsonOptions(options =>
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)));
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services
@@ -100,6 +104,23 @@ api.MapPost("/households/{householdId:guid}/entries", async (Guid householdId, C
         : Results.Ok(result.Entry);
 });
 
+api.MapPost("/households/{householdId:guid}/sync/entries", async (Guid householdId, SyncEntriesRequest request, ClaimsPrincipal user, FinanceService service, CancellationToken ct) =>
+{
+    if (request.Operations is null)
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["operations"] = ["The operations field is required."],
+        });
+    }
+
+    var commands = request.Operations
+        .Select(entry => new SyncEntryCommand(entry.Id, entry.Direction, entry.AmountInCents,
+            entry.Description, entry.OccurredOn, entry.IdempotencyKey))
+        .ToArray();
+    return Results.Ok(await service.SyncEntriesAsync(householdId, RequireUserId(user), commands, ct));
+});
+
 api.MapGet("/households/{householdId:guid}/entries", (Guid householdId, int year, int month, ClaimsPrincipal user, FinanceService service, CancellationToken ct) =>
     service.GetMonthlyEntriesAsync(householdId, RequireUserId(user), year, month, ct));
 
@@ -114,4 +135,5 @@ public partial class Program;
 public sealed record CreateHouseholdRequest(string Name);
 public sealed record AddMemberRequest(string UserId, HouseholdRole Role);
 public sealed record CreateEntryRequest(Guid Id, EntryDirection Direction, long AmountInCents, string Description, DateOnly OccurredOn, string IdempotencyKey);
+public sealed record SyncEntriesRequest(IReadOnlyList<CreateEntryRequest>? Operations);
 

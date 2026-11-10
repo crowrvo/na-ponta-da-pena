@@ -23,3 +23,15 @@ public sealed record MonthlyEntriesResult(
     IReadOnlyList<EntrySummary> Entries);
 
 public sealed record CreatedEntryResult(EntrySummary Entry, bool Created);
+
+public sealed record SyncEntryCommand(
+    Guid Id,
+    EntryDirection Direction,
+    long AmountInCents,
+    string Description,
+    DateOnly OccurredOn,
+    string IdempotencyKey);
+
+public sealed record SyncedEntryResult(Guid Id, string IdempotencyKey, bool Created, long Version);
+
+public sealed record SyncEntriesResult(IReadOnlyList<SyncedEntryResult> Results);

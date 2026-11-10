@@ -27,6 +27,9 @@ class SyncOutbox extends Table {
   TextColumn get operation => text()();
   TextColumn get payload => text()();
   DateTimeColumn get createdAt => dateTime()();
+  IntColumn get attemptCount => integer().withDefault(const Constant(0))();
+  DateTimeColumn get nextAttemptAt => dateTime().nullable()();
+  TextColumn get lastError => text().nullable()();
 
   @override
   Set<Column<Object>> get primaryKey => {operationId};
@@ -39,7 +42,19 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onCreate: (migrator) => migrator.createAll(),
+    onUpgrade: (migrator, from, to) async {
+      if (from < 2) {
+        await migrator.addColumn(syncOutbox, syncOutbox.attemptCount);
+        await migrator.addColumn(syncOutbox, syncOutbox.nextAttemptAt);
+        await migrator.addColumn(syncOutbox, syncOutbox.lastError);
+      }
+    },
+  );
 }
 
 LazyDatabase _openConnection() {
