@@ -12,6 +12,7 @@
 
 ```powershell
 dotnet restore VmsFinance.slnx
+dotnet tool restore
 dotnet test VmsFinance.slnx
 dotnet run --project src/backend/VmsFinance.Api --urls http://127.0.0.1:5080
 ```
@@ -20,7 +21,10 @@ Em desenvolvimento, defina a conexão sem gravar senha no Git:
 
 ```powershell
 $env:ConnectionStrings__VmsFinance='Host=127.0.0.1;Port=5432;Database=vms_finance;Username=vms_finance;Password=...'
+dotnet tool run dotnet-ef database update --project src/backend/VmsFinance.Infrastructure --startup-project src/backend/VmsFinance.Api
 ```
+
+A migração inicial está versionada. O comando de atualização deve ser executado somente depois que o PostgreSQL local estiver disponível e a variável de conexão acima estiver definida.
 
 ## App
 

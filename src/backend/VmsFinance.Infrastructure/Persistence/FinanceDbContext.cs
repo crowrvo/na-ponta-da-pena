@@ -16,7 +16,9 @@ public sealed class FinanceDbContext(DbContextOptions<FinanceDbContext> options)
         entry.ToTable("finance_entries");
         entry.HasKey(item => item.Id);
         entry.Property(item => item.Description).HasMaxLength(240).IsRequired();
+        entry.Property(item => item.IdempotencyKey).HasMaxLength(100).IsRequired();
         entry.Property(item => item.Direction).HasConversion<string>().HasMaxLength(16);
+        entry.HasOne<Household>().WithMany().HasForeignKey(item => item.HouseholdId).OnDelete(DeleteBehavior.Cascade);
         entry.HasIndex(item => new { item.HouseholdId, item.OccurredOn });
         entry.HasIndex(item => new { item.HouseholdId, item.IdempotencyKey }).IsUnique();
 

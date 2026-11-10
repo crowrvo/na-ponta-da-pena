@@ -32,14 +32,18 @@ Concluir o VMS Finance de ponta a ponta, incluindo arquitetura, organização, f
 - Flutter agora possui domínio de lançamentos, repositório offline-first e Cubit para resumo/cadastro; o erro de importação do Drift foi corrigido.
 - Qualidade validada: `dotnet test` aprovado; `flutter analyze` sem alertas; `flutter test` aprovado; `git diff --check` aprovado.
 - Docker não está instalado/disponível neste Windows, portanto `docker compose config` não pôde ser executado localmente. Nenhum serviço foi publicado.
+- Retomada automática de 2026-11-10 13:41 (America/Sao_Paulo): repositório confirmado limpo no commit `3bccd37`; em andamento a cobertura unitária de `FinanceService` para autorização por família, idempotência e totais mensais.
+- Cobertura unitária adicionada: isolamento entre famílias, retry idempotente, conflito de chave, totais mensais e autorização exclusiva do owner. `dotnet test` passou com 6 testes.
+- GitHub Project completado com os campos `Priority` e `Area`; as 7 Issues foram classificadas e a Issue `#7` permanece `Todo`, P2 e bloqueada pelos gates de segurança.
+- Ferramenta local `dotnet-ef` 10.0.4 versionada e migração `InitialCreate` gerada. A modelagem ganhou chave estrangeira de lançamentos para famílias e limite de 100 caracteres para a chave idempotente.
+- A migração foi validada por compilação/model generation, mas não aplicada: não há PostgreSQL ativo em `localhost:5432`. Nenhuma API ou túnel foi publicado.
 
 ## Próxima ação
 
-1. Completar o GitHub Project com os campos de priorização e área.
-2. Adicionar testes unitários para `FinanceService`, isolamento entre famílias e idempotência.
-3. Criar e validar a primeira migração EF Core quando PostgreSQL/Docker estiver disponível.
-4. Implementar o contrato de sincronização entre outbox Flutter e Minimal API.
-5. Atualizar Issues e Project conforme os resultados; manter a Issue `#7` bloqueada até HTTPS e autenticação estarem implementados e validados.
+1. Implementar o contrato de sincronização entre outbox Flutter e Minimal API, com envio em lote autenticado, confirmação e retry.
+2. Adicionar testes de persistência PostgreSQL assim que uma instância local estiver disponível e aplicar a migração `InitialCreate`.
+3. Completar convites/entrada/revogação de membros e documentar a escolha do provedor OIDC.
+4. Atualizar Issues e Project conforme os resultados; manter a Issue `#7` bloqueada até HTTPS e autenticação estarem implementados e validados.
 
 ## Restrições permanentes
 
