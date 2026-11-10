@@ -20,7 +20,11 @@ class SyncRunResult {
   final int conflicts;
 }
 
-class FinanceSyncService {
+abstract interface class FinanceSyncRunner {
+  Future<SyncRunResult> syncPending({int limit = 50});
+}
+
+class FinanceSyncService implements FinanceSyncRunner {
   FinanceSyncService({
     required AppDatabase database,
     required EntrySyncApi api,
@@ -37,6 +41,7 @@ class FinanceSyncService {
   final DateTime Function() _clock;
   bool _isRunning = false;
 
+  @override
   Future<SyncRunResult> syncPending({int limit = 50}) async {
     if (_isRunning) {
       return const SyncRunResult(SyncRunStatus.alreadyRunning);
@@ -69,6 +74,8 @@ class FinanceSyncService {
     for (final row in rows) {
       try {
         operations.add(_decode(row));
+      } on _LocalOnlyEntryException {
+        await _markLocalOnly(row);
       } on Object {
         await _quarantineMalformed(row);
         conflicts++;
@@ -165,17 +172,25 @@ class FinanceSyncService {
     if (payload is! Map<String, dynamic>) {
       throw const FormatException('Invalid outbox payload.');
     }
+    final householdId = payload['householdId'] as String;
+    if (!_uuidPattern.hasMatch(householdId)) {
+      throw const _LocalOnlyEntryException();
+    }
     final occurredAt = DateTime.parse(payload['occurredAt'] as String).toUtc();
     return PendingEntryOperation(
       operationId: row.operationId,
       entryId: payload['id'] as String,
-      householdId: payload['householdId'] as String,
+      householdId: householdId,
       direction: payload['direction'] as String,
       amountInCents: payload['amountInCents'] as int,
       description: payload['description'] as String,
       occurredOn: occurredAt.toIso8601String().substring(0, 10),
     );
   }
+
+  static final RegExp _uuidPattern = RegExp(
+    r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$',
+  );
 
   Future<void> _complete(PendingEntryOperation operation, String state) async {
     await _database.transaction(() async {
@@ -194,6 +209,19 @@ class FinanceSyncService {
         _database.localFinanceEntries,
       )..where((entry) => entry.id.equals(row.entityId))).write(
         const LocalFinanceEntriesCompanion(syncState: Value('conflict')),
+      );
+      await (_database.delete(
+        _database.syncOutbox,
+      )..where((item) => item.operationId.equals(row.operationId))).go();
+    });
+  }
+
+  Future<void> _markLocalOnly(SyncOutboxData row) async {
+    await _database.transaction(() async {
+      await (_database.update(
+        _database.localFinanceEntries,
+      )..where((entry) => entry.id.equals(row.entityId))).write(
+        const LocalFinanceEntriesCompanion(syncState: Value('local-only')),
       );
       await (_database.delete(
         _database.syncOutbox,
@@ -221,4 +249,8 @@ class FinanceSyncService {
       ),
     );
   }
+}
+
+class _LocalOnlyEntryException implements Exception {
+  const _LocalOnlyEntryException();
 }

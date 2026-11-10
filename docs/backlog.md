@@ -6,7 +6,7 @@
 - [x] PostgreSQL local documentado e composição preparada.
 - [x] SQLite e outbox local.
 - [x] CI de backend e app.
-- [ ] Escolher provedor OIDC e modelar famílias/convites.
+- [x] Escolher provedor OIDC e modelar famílias/convites.
 - [ ] Instalar PostgreSQL local ou Docker Desktop.
 - [ ] Configurar proteção da branch `main`.
 
@@ -15,9 +15,9 @@
 - [ ] Cadastro e login.
 - [ ] Criar/entrar em uma família.
 - [ ] Registrar receita/despesa offline.
-- [ ] Sincronizar alterações idempotentes.
+- [x] Sincronizar alterações idempotentes.
 - [ ] Listar lançamentos e saldo mensal.
-- [ ] Testar isolamento entre famílias.
+- [x] Testar isolamento entre famílias.
 
 ## Sprint 2 — Operação segura
 

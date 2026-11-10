@@ -10,6 +10,8 @@ import 'package:vms_finance_app/core/sync/finance_sync_service.dart';
 import 'package:vms_finance_app/features/entries/domain/finance_entry.dart';
 
 void main() {
+  const householdOne = '11111111-1111-4111-8111-111111111111';
+  const householdTwo = '22222222-2222-4222-8222-222222222222';
   late AppDatabase database;
   late FinanceRepository repository;
   final now = DateTime.utc(2026, 11, 10, 21);
@@ -25,7 +27,7 @@ void main() {
     'acknowledges only confirmed operations and marks entry synced',
     () async {
       await repository.addEntry(
-        householdId: 'household-1',
+        householdId: householdOne,
         direction: FinanceEntryDirection.expense,
         amountInCents: 1599,
         description: 'Groceries',
@@ -49,7 +51,7 @@ void main() {
           .getSingle();
       expect(entry.syncState, 'synced');
       expect(api.calls, hasLength(1));
-      expect(api.calls.single.householdId, 'household-1');
+      expect(api.calls.single.householdId, householdOne);
       expect(api.calls.single.accessToken, 'access-token');
       final sent = api.calls.single.operations.single;
       expect(sent.direction, 'expense');
@@ -70,7 +72,7 @@ void main() {
     'retains operation and schedules exponential retry after failure',
     () async {
       await repository.addEntry(
-        householdId: 'household-1',
+        householdId: householdOne,
         direction: FinanceEntryDirection.income,
         amountInCents: 500000,
         description: 'Salary',
@@ -105,7 +107,7 @@ void main() {
     'does not contact API or mutate outbox without an access token',
     () async {
       await repository.addEntry(
-        householdId: 'household-1',
+        householdId: householdOne,
         direction: FinanceEntryDirection.expense,
         amountInCents: 800,
         description: 'Lunch',
@@ -129,7 +131,7 @@ void main() {
 
   test('quarantines an atomic batch rejected with a conflict', () async {
     await repository.addEntry(
-      householdId: 'household-1',
+      householdId: householdOne,
       direction: FinanceEntryDirection.expense,
       amountInCents: 800,
       description: 'Lunch',
@@ -157,7 +159,7 @@ void main() {
 
   test('quarantines malformed payload without aborting the run', () async {
     await repository.addEntry(
-      householdId: 'household-1',
+      householdId: householdOne,
       direction: FinanceEntryDirection.expense,
       amountInCents: 800,
       description: 'Lunch',
@@ -184,9 +186,33 @@ void main() {
     expect(entry.syncState, 'conflict');
   });
 
+  test('keeps an unassigned household local and never calls the API', () async {
+    await repository.addDraftExpense(
+      amountInCents: 800,
+      description: 'Local draft',
+    );
+    final api = FakeEntrySyncApi();
+    final service = FinanceSyncService(
+      database: database,
+      api: api,
+      tokenProvider: const FixedTokenProvider('access-token'),
+      clock: () => now,
+    );
+
+    final result = await service.syncPending();
+
+    expect(result.status, SyncRunStatus.completed);
+    expect(api.calls, isEmpty);
+    expect(await database.select(database.syncOutbox).get(), isEmpty);
+    final entry = await database
+        .select(database.localFinanceEntries)
+        .getSingle();
+    expect(entry.syncState, 'local-only');
+  });
+
   test('401 or 403 requires authentication without scheduling retry', () async {
     await repository.addEntry(
-      householdId: 'household-1',
+      householdId: householdOne,
       direction: FinanceEntryDirection.expense,
       amountInCents: 800,
       description: 'Lunch',
@@ -211,7 +237,7 @@ void main() {
   test('invalid response retries the entire batch before any ack', () async {
     for (var index = 0; index < 2; index++) {
       await repository.addEntry(
-        householdId: 'household-1',
+        householdId: householdOne,
         direction: FinanceEntryDirection.expense,
         amountInCents: 100 + index,
         description: 'Entry $index',
@@ -240,7 +266,7 @@ void main() {
 
   test('rejects a concurrent sync run with a guard result', () async {
     await repository.addEntry(
-      householdId: 'household-1',
+      householdId: householdOne,
       direction: FinanceEntryDirection.expense,
       amountInCents: 800,
       description: 'Lunch',
@@ -266,7 +292,7 @@ void main() {
   });
 
   test('groups operations by household into authenticated batches', () async {
-    for (final householdId in ['household-1', 'household-2']) {
+    for (final householdId in [householdOne, householdTwo]) {
       await repository.addEntry(
         householdId: householdId,
         direction: FinanceEntryDirection.expense,
@@ -287,8 +313,8 @@ void main() {
 
     expect(api.calls, hasLength(2));
     expect(api.calls.map((call) => call.householdId), {
-      'household-1',
-      'household-2',
+      householdOne,
+      householdTwo,
     });
   });
 }

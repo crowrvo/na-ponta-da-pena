@@ -43,13 +43,19 @@ Concluir o VMS Finance de ponta a ponta, incluindo arquitetura, organização, f
 - O Flutter agora agrupa a outbox por família, usa token por abstração de armazenamento seguro, envia lotes, confirma SQLite em transação, aplica backoff exponencial e trata conflito/payload inválido sem perder o lançamento local.
 - Robustez validada: 401/403 não entram em retry, respostas parciais/extras/duplicadas são recusadas antes do ack, erros persistidos são códigos genéricos e um guard evita sincronizações concorrentes.
 - Validação desta retomada: `dotnet test` com 12 testes; `flutter analyze` limpo; `flutter test` com 10 testes; nenhuma publicação externa.
+- Retomada manual de 2026-11-10: repositório limpo no commit `45fc5eb`. Em andamento, em frentes separadas: integração do `FinanceSyncService` com Cubit/conectividade/UI; convites, entrada e revogação de membros no backend; pesquisa oficial para decisão do provedor OIDC. Nenhuma publicação foi autorizada ou iniciada.
+- Decisão OIDC registrada em `docs/decisions/0001-authentication-provider.md`: Auth0, Authorization Code + PKCE, audience `https://api.crowrvo.com.br`, membership consultado no PostgreSQL e tokens no armazenamento seguro. Linux desktop ficou como validação pendente; nenhum tenant, DNS ou segredo foi configurado.
+- Integração Flutter concluída no worktree: `FinanceSyncCubit`, disparo por conectividade/ação manual, estados na dashboard e configuração exclusiva por `VMS_API_BASE_URL`. Origem remota exige HTTPS; HTTP só é aceito para loopback em desenvolvimento. Operações sem UUID de família ficam `local-only` e nunca chegam à API.
+- Gestão de famílias concluída no backend: convite opaco de 256 bits com somente hash persistido, validade/uso único/revogação, listagem de metadados sem segredos, aceite, remoção e saída de members. A migração `AddHouseholdInvitations` foi gerada, mas não aplicada sem PostgreSQL local.
+- Validação atual: `dotnet test` com 18 testes e `flutter analyze`/`flutter test` com 18 testes aprovados. Nenhum DNS, tenant, túnel ou serviço externo foi alterado.
 
 ## Próxima ação
 
-1. Integrar o disparo do `FinanceSyncService` ao Cubit/conectividade e expor estados de sincronização na interface, sem iniciar o túnel.
-2. Completar convites/entrada/revogação de membros e documentar a escolha do provedor OIDC; só então conectar o login real ao `AccessTokenProvider`.
-3. Adicionar testes de persistência PostgreSQL assim que uma instância local estiver disponível e aplicar a migração `InitialCreate`.
-4. Atualizar Issues e Project conforme os resultados; manter a Issue `#7` bloqueada até HTTPS e autenticação estarem implementados e validados.
+1. Implementar no Flutter o fluxo útil de famílias (listar/criar/aceitar convite) e substituir `local-unassigned` por uma família selecionada antes de sincronizar.
+2. Conectar o login Auth0 ao `AccessTokenProvider` quando os identificadores públicos do tenant/native app estiverem disponíveis; validar PKCE em Android, iOS e Windows.
+3. Implementar formulário e lista mensal completos usando `FinanceOverviewCubit`, incluindo estados vazio, carregando, erro e conflitos locais.
+4. Adicionar testes de persistência PostgreSQL assim que uma instância local estiver disponível e aplicar as migrações.
+5. Manter a Issue `#7` bloqueada até autenticação e HTTPS estarem implementados e validados; não iniciar o túnel antes disso.
 
 ## Restrições permanentes
 

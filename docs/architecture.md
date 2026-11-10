@@ -38,6 +38,14 @@ O app envia lotes autenticados de 1 a 100 operações para
 
 A resposta contém `results` com `id`, `idempotencyKey`, `created` e `version` para cada operação. O mesmo lote pode ser reenviado: operações idênticas retornam `created: false`. Uma chave reutilizada com dados diferentes retorna HTTP 409 e nenhuma nova operação do lote é persistida.
 
+O app dispara a sincronização por Cubit ao recuperar conectividade ou por ação manual. A origem da API vem exclusivamente de `VMS_API_BASE_URL`; origens remotas precisam usar HTTPS. Lançamentos ainda sem uma família remota válida permanecem locais e não são enviados.
+
+## Convites e membership
+
+Somente owners criam, listam ou revogam convites. O token de convite possui 256 bits de entropia, é devolvido uma única vez e somente seu hash SHA-256 é persistido. Convites expiram, são de uso único e usam controle otimista de concorrência. A listagem administrativa contém apenas metadados e status, nunca token, hash ou identificadores dos usuários.
+
+Um member pode sair da família; um owner precisa transferir a responsabilidade ou excluir a família antes de sair. Owners podem remover members, mas não outros owners.
+
 ## Segurança antes da publicação
 
 - provedor OIDC/OAuth 2.1 definido;

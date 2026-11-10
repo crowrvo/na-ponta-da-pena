@@ -1,5 +1,7 @@
 using VmsFinance.Application.Abstractions;
 using VmsFinance.Application.Common;
+using System.Security.Cryptography;
+using System.Text;
 using VmsFinance.Domain.Finance;
 using VmsFinance.Domain.Households;
 
@@ -60,6 +62,159 @@ public sealed class FinanceService(IFinanceRepository repository, TimeProvider t
         await repository.AddMemberAsync(
             new HouseholdMember(householdId, memberUserId, role, timeProvider.GetUtcNow()),
             cancellationToken);
+        await repository.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<CreatedInvitationResult> CreateInvitationAsync(
+        Guid householdId,
+        string currentUserId,
+        TimeSpan validFor,
+        CancellationToken cancellationToken)
+    {
+        var membership = await RequireMembershipAsync(householdId, currentUserId, cancellationToken);
+        if (membership.Role != HouseholdRole.Owner)
+        {
+            throw new HouseholdAccessDeniedException("Only a household owner can create invitations.");
+        }
+
+        if (validFor < TimeSpan.FromHours(1) || validFor > TimeSpan.FromDays(30))
+        {
+            throw new ArgumentOutOfRangeException(nameof(validFor), "Invitation validity must be between one hour and 30 days.");
+        }
+
+        var now = timeProvider.GetUtcNow();
+        var token = CreateOpaqueToken();
+        var invitation = new HouseholdInvitation(
+            Guid.NewGuid(),
+            householdId,
+            HashToken(token),
+            currentUserId,
+            now,
+            now.Add(validFor));
+
+        await repository.AddInvitationAsync(invitation, cancellationToken);
+        await repository.SaveChangesAsync(cancellationToken);
+        return new CreatedInvitationResult(invitation.Id, token, invitation.ExpiresAtUtc);
+    }
+
+    public async Task<IReadOnlyList<InvitationSummary>> ListInvitationsAsync(
+        Guid householdId,
+        string currentUserId,
+        CancellationToken cancellationToken)
+    {
+        var membership = await RequireMembershipAsync(householdId, currentUserId, cancellationToken);
+        if (membership.Role != HouseholdRole.Owner)
+        {
+            throw new HouseholdAccessDeniedException("Only a household owner can list invitations.");
+        }
+
+        var now = timeProvider.GetUtcNow();
+        var invitations = await repository.ListInvitationsAsync(householdId, cancellationToken);
+        return invitations.Select(invitation => new InvitationSummary(
+            invitation.Id,
+            invitation.ExpiresAtUtc,
+            invitation.AcceptedAtUtc,
+            invitation.RevokedAtUtc,
+            GetInvitationStatus(invitation, now))).ToArray();
+    }
+
+    public async Task<AcceptedInvitationResult> AcceptInvitationAsync(
+        string userId,
+        string token,
+        CancellationToken cancellationToken)
+    {
+        EnsureUser(userId);
+        var normalizedToken = token?.Trim();
+        if (string.IsNullOrWhiteSpace(normalizedToken) || normalizedToken.Length > 512)
+        {
+            throw new ResourceNotFoundException("Invitation was not found.");
+        }
+
+        var invitation = await repository.GetInvitationByTokenHashAsync(HashToken(normalizedToken), cancellationToken)
+            ?? throw new ResourceNotFoundException("Invitation was not found.");
+        var now = timeProvider.GetUtcNow();
+        if (!invitation.IsUsableAt(now))
+        {
+            throw new InvitationNotUsableException("Invitation is expired, revoked, or already used.");
+        }
+
+        var household = await repository.GetHouseholdAsync(invitation.HouseholdId, cancellationToken)
+            ?? throw new ResourceNotFoundException("Household was not found.");
+        var membership = await repository.GetMembershipAsync(invitation.HouseholdId, userId, cancellationToken);
+        if (membership is null)
+        {
+            membership = new HouseholdMember(invitation.HouseholdId, userId, HouseholdRole.Member, now);
+            await repository.AddMemberAsync(membership, cancellationToken);
+        }
+
+        invitation.Accept(userId, now);
+        await repository.SaveChangesAsync(cancellationToken);
+        return new AcceptedInvitationResult(household.Id, household.Name, membership.Role);
+    }
+
+    public async Task RevokeInvitationAsync(
+        Guid householdId,
+        Guid invitationId,
+        string currentUserId,
+        CancellationToken cancellationToken)
+    {
+        var membership = await RequireMembershipAsync(householdId, currentUserId, cancellationToken);
+        if (membership.Role != HouseholdRole.Owner)
+        {
+            throw new HouseholdAccessDeniedException("Only a household owner can revoke invitations.");
+        }
+
+        var invitation = await repository.GetInvitationByIdAsync(householdId, invitationId, cancellationToken)
+            ?? throw new ResourceNotFoundException("Invitation was not found.");
+        try
+        {
+            invitation.Revoke(timeProvider.GetUtcNow());
+        }
+        catch (InvalidOperationException exception)
+        {
+            throw new InvitationNotUsableException(exception.Message);
+        }
+
+        await repository.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task RemoveMemberAsync(
+        Guid householdId,
+        string currentUserId,
+        string memberUserId,
+        CancellationToken cancellationToken)
+    {
+        EnsureUser(memberUserId);
+        var currentMembership = await RequireMembershipAsync(householdId, currentUserId, cancellationToken);
+        if (currentMembership.Role != HouseholdRole.Owner)
+        {
+            throw new HouseholdAccessDeniedException("Only a household owner can remove members.");
+        }
+
+        var target = await repository.GetMembershipAsync(householdId, memberUserId, cancellationToken)
+            ?? throw new ResourceNotFoundException("Household member was not found.");
+        if (target.Role == HouseholdRole.Owner)
+        {
+            throw new HouseholdAccessDeniedException("A household owner cannot be removed.");
+        }
+
+        await repository.RemoveMemberAsync(target, cancellationToken);
+        await repository.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task LeaveHouseholdAsync(
+        Guid householdId,
+        string userId,
+        CancellationToken cancellationToken)
+    {
+        var membership = await RequireMembershipAsync(householdId, userId, cancellationToken);
+        if (membership.Role == HouseholdRole.Owner)
+        {
+            throw new HouseholdAccessDeniedException(
+                "A household owner must transfer ownership or delete the household before leaving.");
+        }
+
+        await repository.RemoveMemberAsync(membership, cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);
     }
 
@@ -233,6 +388,22 @@ public sealed class FinanceService(IFinanceRepository repository, TimeProvider t
         {
             throw new IdempotencyConflictException("The idempotency key was already used with different data.");
         }
+    }
+
+    private static string CreateOpaqueToken()
+    {
+        var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+        return token.TrimEnd('=').Replace('+', '-').Replace('/', '_');
+    }
+
+    private static string HashToken(string token) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
+
+    private static InvitationStatus GetInvitationStatus(HouseholdInvitation invitation, DateTimeOffset now)
+    {
+        if (invitation.AcceptedAtUtc is not null) return InvitationStatus.Accepted;
+        if (invitation.RevokedAtUtc is not null) return InvitationStatus.Revoked;
+        return now >= invitation.ExpiresAtUtc ? InvitationStatus.Expired : InvitationStatus.Active;
     }
 
     private static void EnsureUser(string userId)

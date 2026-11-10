@@ -90,6 +90,56 @@ namespace VmsFinance.Infrastructure.Persistence.Migrations
                     b.ToTable("households", (string)null);
                 });
 
+            modelBuilder.Entity("VmsFinance.Domain.Households.HouseholdInvitation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("AcceptedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("AcceptedByUserId")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTimeOffset>("ExpiresAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("HouseholdId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("RevokedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character(64)")
+                        .IsFixedLength();
+
+                    b.Property<long>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("HouseholdId", "ExpiresAtUtc");
+
+                    b.ToTable("household_invitations", (string)null);
+                });
+
             modelBuilder.Entity("VmsFinance.Domain.Households.HouseholdMember", b =>
                 {
                     b.Property<Guid>("HouseholdId")
@@ -113,6 +163,15 @@ namespace VmsFinance.Infrastructure.Persistence.Migrations
                 });
 
             modelBuilder.Entity("VmsFinance.Domain.Finance.FinanceEntry", b =>
+                {
+                    b.HasOne("VmsFinance.Domain.Households.Household", null)
+                        .WithMany()
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("VmsFinance.Domain.Households.HouseholdInvitation", b =>
                 {
                     b.HasOne("VmsFinance.Domain.Households.Household", null)
                         .WithMany()

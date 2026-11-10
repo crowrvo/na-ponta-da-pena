@@ -5,6 +5,25 @@ namespace VmsFinance.Application.Finance;
 
 public sealed record HouseholdSummary(Guid Id, string Name, HouseholdRole Role);
 
+public sealed record CreatedInvitationResult(Guid Id, string Token, DateTimeOffset ExpiresAtUtc);
+
+public sealed record AcceptedInvitationResult(Guid HouseholdId, string HouseholdName, HouseholdRole Role);
+
+public enum InvitationStatus
+{
+    Active,
+    Accepted,
+    Revoked,
+    Expired,
+}
+
+public sealed record InvitationSummary(
+    Guid Id,
+    DateTimeOffset ExpiresAtUtc,
+    DateTimeOffset? AcceptedAtUtc,
+    DateTimeOffset? RevokedAtUtc,
+    InvitationStatus Status);
+
 public sealed record EntrySummary(
     Guid Id,
     EntryDirection Direction,

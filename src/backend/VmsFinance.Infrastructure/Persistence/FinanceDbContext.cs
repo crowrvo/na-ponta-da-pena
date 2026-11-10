@@ -9,6 +9,7 @@ public sealed class FinanceDbContext(DbContextOptions<FinanceDbContext> options)
     public DbSet<FinanceEntry> FinanceEntries => Set<FinanceEntry>();
     public DbSet<Household> Households => Set<Household>();
     public DbSet<HouseholdMember> HouseholdMembers => Set<HouseholdMember>();
+    public DbSet<HouseholdInvitation> HouseholdInvitations => Set<HouseholdInvitation>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -33,6 +34,17 @@ public sealed class FinanceDbContext(DbContextOptions<FinanceDbContext> options)
         member.Property(item => item.UserId).HasMaxLength(200);
         member.Property(item => item.Role).HasConversion<string>().HasMaxLength(16);
         member.HasOne<Household>().WithMany().HasForeignKey(item => item.HouseholdId).OnDelete(DeleteBehavior.Cascade);
+
+        var invitation = modelBuilder.Entity<HouseholdInvitation>();
+        invitation.ToTable("household_invitations");
+        invitation.HasKey(item => item.Id);
+        invitation.Property(item => item.TokenHash).HasMaxLength(64).IsFixedLength().IsRequired();
+        invitation.Property(item => item.CreatedByUserId).HasMaxLength(200).IsRequired();
+        invitation.Property(item => item.AcceptedByUserId).HasMaxLength(200);
+        invitation.Property(item => item.Version).IsConcurrencyToken();
+        invitation.HasIndex(item => item.TokenHash).IsUnique();
+        invitation.HasIndex(item => new { item.HouseholdId, item.ExpiresAtUtc });
+        invitation.HasOne<Household>().WithMany().HasForeignKey(item => item.HouseholdId).OnDelete(DeleteBehavior.Cascade);
     }
 }
 

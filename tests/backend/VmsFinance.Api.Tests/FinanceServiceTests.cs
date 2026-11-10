@@ -3,6 +3,9 @@ using VmsFinance.Application.Common;
 using VmsFinance.Application.Finance;
 using VmsFinance.Domain.Finance;
 using VmsFinance.Domain.Households;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 
 namespace VmsFinance.Api.Tests;
 
@@ -115,6 +118,145 @@ public sealed class FinanceServiceTests
     }
 
     [Fact]
+    public async Task Invitation_is_created_by_owner_with_only_a_hash_persisted_and_is_single_use()
+    {
+        var repository = new FakeFinanceRepository();
+        var household = repository.AddHousehold("owner");
+        var service = CreateService(repository);
+
+        var created = await service.CreateInvitationAsync(
+            household.Id, "owner", TimeSpan.FromDays(7), CancellationToken.None);
+
+        var persisted = Assert.Single(repository.Invitations);
+        Assert.NotEqual(created.Token, persisted.TokenHash);
+        Assert.Equal(64, persisted.TokenHash.Length);
+        Assert.Equal(HashToken(created.Token), persisted.TokenHash);
+
+        var accepted = await service.AcceptInvitationAsync(
+            "member", $"  {created.Token}\r\n", CancellationToken.None);
+        Assert.Equal(household.Id, accepted.HouseholdId);
+        Assert.Equal(HouseholdRole.Member, accepted.Role);
+        Assert.Contains(repository.Members, item => item.HouseholdId == household.Id && item.UserId == "member");
+
+        await Assert.ThrowsAsync<InvitationNotUsableException>(() =>
+            service.AcceptInvitationAsync("another-member", created.Token, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Invitation_creation_and_revocation_require_an_owner()
+    {
+        var repository = new FakeFinanceRepository();
+        var household = repository.AddHousehold("owner");
+        repository.Members.Add(new HouseholdMember(household.Id, "member", HouseholdRole.Member, Now));
+        var service = CreateService(repository);
+
+        await Assert.ThrowsAsync<HouseholdAccessDeniedException>(() => service.CreateInvitationAsync(
+            household.Id, "member", TimeSpan.FromDays(1), CancellationToken.None));
+
+        var created = await service.CreateInvitationAsync(
+            household.Id, "owner", TimeSpan.FromDays(1), CancellationToken.None);
+        await Assert.ThrowsAsync<HouseholdAccessDeniedException>(() => service.RevokeInvitationAsync(
+            household.Id, created.Id, "member", CancellationToken.None));
+
+        await service.RevokeInvitationAsync(household.Id, created.Id, "owner", CancellationToken.None);
+        await Assert.ThrowsAsync<InvitationNotUsableException>(() =>
+            service.AcceptInvitationAsync("new-member", created.Token, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Owner_can_list_safe_invitation_metadata_with_derived_statuses()
+    {
+        var repository = new FakeFinanceRepository();
+        var household = repository.AddHousehold("owner");
+        repository.Members.Add(new HouseholdMember(household.Id, "member", HouseholdRole.Member, Now));
+        var timeProvider = new FixedTimeProvider(Now);
+        var service = new FinanceService(repository, timeProvider);
+        var expired = await service.CreateInvitationAsync(
+            household.Id, "owner", TimeSpan.FromHours(1), CancellationToken.None);
+        var active = await service.CreateInvitationAsync(
+            household.Id, "owner", TimeSpan.FromDays(1), CancellationToken.None);
+        var revoked = await service.CreateInvitationAsync(
+            household.Id, "owner", TimeSpan.FromDays(1), CancellationToken.None);
+        var accepted = await service.CreateInvitationAsync(
+            household.Id, "owner", TimeSpan.FromDays(1), CancellationToken.None);
+        await service.RevokeInvitationAsync(household.Id, revoked.Id, "owner", CancellationToken.None);
+        await service.AcceptInvitationAsync("accepted-member", accepted.Token, CancellationToken.None);
+        timeProvider.UtcNow = Now.AddHours(2);
+
+        var summaries = await service.ListInvitationsAsync(
+            household.Id, "owner", CancellationToken.None);
+
+        Assert.Equal(4, summaries.Count);
+        Assert.Equal(InvitationStatus.Expired, summaries.Single(item => item.Id == expired.Id).Status);
+        Assert.Equal(InvitationStatus.Active, summaries.Single(item => item.Id == active.Id).Status);
+        Assert.Equal(InvitationStatus.Revoked, summaries.Single(item => item.Id == revoked.Id).Status);
+        var acceptedSummary = summaries.Single(item => item.Id == accepted.Id);
+        Assert.Equal(InvitationStatus.Accepted, acceptedSummary.Status);
+        Assert.NotNull(acceptedSummary.AcceptedAtUtc);
+        var json = JsonSerializer.Serialize(summaries);
+        Assert.DoesNotContain(expired.Token, json, StringComparison.Ordinal);
+        Assert.DoesNotContain("Token", json, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("CreatedBy", json, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("AcceptedBy", json, StringComparison.OrdinalIgnoreCase);
+
+        await Assert.ThrowsAsync<HouseholdAccessDeniedException>(() =>
+            service.ListInvitationsAsync(household.Id, "member", CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Expired_invitation_cannot_be_accepted()
+    {
+        var repository = new FakeFinanceRepository();
+        var household = repository.AddHousehold("owner");
+        var timeProvider = new FixedTimeProvider(Now);
+        var service = new FinanceService(repository, timeProvider);
+        var created = await service.CreateInvitationAsync(
+            household.Id, "owner", TimeSpan.FromHours(1), CancellationToken.None);
+
+        timeProvider.UtcNow = Now.AddHours(1);
+
+        await Assert.ThrowsAsync<InvitationNotUsableException>(() =>
+            service.AcceptInvitationAsync("member", created.Token, CancellationToken.None));
+        Assert.DoesNotContain(repository.Members, item => item.UserId == "member");
+    }
+
+    [Fact]
+    public async Task Owner_can_remove_member_but_member_cannot_remove_others_or_owner()
+    {
+        var repository = new FakeFinanceRepository();
+        var household = repository.AddHousehold("owner");
+        repository.Members.Add(new HouseholdMember(household.Id, "member", HouseholdRole.Member, Now));
+        repository.Members.Add(new HouseholdMember(household.Id, "other", HouseholdRole.Member, Now));
+        var service = CreateService(repository);
+
+        await Assert.ThrowsAsync<HouseholdAccessDeniedException>(() => service.RemoveMemberAsync(
+            household.Id, "member", "other", CancellationToken.None));
+        await Assert.ThrowsAsync<HouseholdAccessDeniedException>(() => service.RemoveMemberAsync(
+            household.Id, "owner", "owner", CancellationToken.None));
+
+        await service.RemoveMemberAsync(household.Id, "owner", "member", CancellationToken.None);
+
+        Assert.DoesNotContain(repository.Members, item => item.UserId == "member");
+        Assert.Contains(repository.Members, item => item.UserId == "owner" && item.Role == HouseholdRole.Owner);
+    }
+
+    [Fact]
+    public async Task Member_can_leave_household_but_owner_cannot_leave_while_still_owner()
+    {
+        var repository = new FakeFinanceRepository();
+        var household = repository.AddHousehold("owner");
+        repository.Members.Add(new HouseholdMember(household.Id, "member", HouseholdRole.Member, Now));
+        var service = CreateService(repository);
+
+        await service.LeaveHouseholdAsync(household.Id, "member", CancellationToken.None);
+
+        Assert.DoesNotContain(repository.Members, item => item.UserId == "member");
+        await Assert.ThrowsAsync<HouseholdAccessDeniedException>(() =>
+            service.LeaveHouseholdAsync(household.Id, "owner", CancellationToken.None));
+        Assert.Contains(repository.Members, item => item.UserId == "owner" && item.Role == HouseholdRole.Owner);
+    }
+
+    [Fact]
     public async Task SyncEntries_persists_a_batch_once_and_marks_a_retry_as_duplicate()
     {
         var repository = new FakeFinanceRepository();
@@ -213,15 +355,21 @@ public sealed class FinanceServiceTests
     private static FinanceService CreateService(IFinanceRepository repository) =>
         new(repository, new FixedTimeProvider(Now));
 
+    private static string HashToken(string token) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
+
     private sealed class FixedTimeProvider(DateTimeOffset utcNow) : TimeProvider
     {
-        public override DateTimeOffset GetUtcNow() => utcNow;
+        public DateTimeOffset UtcNow { get; set; } = utcNow;
+
+        public override DateTimeOffset GetUtcNow() => UtcNow;
     }
 
     private sealed class FakeFinanceRepository : IFinanceRepository
     {
         public List<Household> Households { get; } = [];
         public List<HouseholdMember> Members { get; } = [];
+        public List<HouseholdInvitation> Invitations { get; } = [];
         public List<FinanceEntry> Entries { get; } = [];
         public int SaveCount { get; private set; }
 
@@ -261,6 +409,38 @@ public sealed class FinanceServiceTests
             Members.Add(member);
             return Task.CompletedTask;
         }
+
+        public Task RemoveMemberAsync(HouseholdMember member, CancellationToken cancellationToken)
+        {
+            Members.Remove(member);
+            return Task.CompletedTask;
+        }
+
+        public Task AddInvitationAsync(HouseholdInvitation invitation, CancellationToken cancellationToken)
+        {
+            Invitations.Add(invitation);
+            return Task.CompletedTask;
+        }
+
+        public Task<HouseholdInvitation?> GetInvitationByIdAsync(
+            Guid householdId,
+            Guid invitationId,
+            CancellationToken cancellationToken) =>
+            Task.FromResult(Invitations.SingleOrDefault(item =>
+                item.HouseholdId == householdId && item.Id == invitationId));
+
+        public Task<HouseholdInvitation?> GetInvitationByTokenHashAsync(
+            string tokenHash,
+            CancellationToken cancellationToken) =>
+            Task.FromResult(Invitations.SingleOrDefault(item => item.TokenHash == tokenHash));
+
+        public Task<IReadOnlyList<HouseholdInvitation>> ListInvitationsAsync(
+            Guid householdId,
+            CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<HouseholdInvitation>>(Invitations
+                .Where(item => item.HouseholdId == householdId)
+                .OrderByDescending(item => item.CreatedAtUtc)
+                .ToArray());
 
         public Task<FinanceEntry?> GetEntryByIdempotencyKeyAsync(
             Guid householdId,

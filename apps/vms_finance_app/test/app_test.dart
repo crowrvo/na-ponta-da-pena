@@ -5,7 +5,9 @@ import 'package:vms_finance_app/core/database/app_database.dart';
 import 'package:vms_finance_app/main.dart';
 
 void main() {
-  testWidgets('shows the offline-first bootstrap screen', (tester) async {
+  testWidgets('shows offline-first and safe sync configuration states', (
+    tester,
+  ) async {
     final database = AppDatabase.forTesting(NativeDatabase.memory());
 
     await tester.pumpWidget(
@@ -15,6 +17,11 @@ void main() {
 
     expect(find.text('Finanças da família'), findsOneWidget);
     expect(find.text('Operações aguardando sincronização'), findsOneWidget);
+    expect(
+      find.text('A API ainda não foi configurada neste aplicativo.'),
+      findsOneWidget,
+    );
+    expect(find.text('Criar lançamento local de teste'), findsNothing);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();

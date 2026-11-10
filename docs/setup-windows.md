@@ -26,6 +26,13 @@ dotnet tool run dotnet-ef database update --project src/backend/VmsFinance.Infra
 
 A migração inicial está versionada. O comando de atualização deve ser executado somente depois que o PostgreSQL local estiver disponível e a variável de conexão acima estiver definida.
 
+Para validar JWT localmente, use os identificadores públicos do tenant quando ele existir. Não versione esses valores:
+
+```powershell
+$env:Authentication__Authority='https://TENANT_REGION.auth0.com/'
+$env:Authentication__Audience='https://api.crowrvo.com.br'
+```
+
 ## App
 
 ```powershell
@@ -33,8 +40,10 @@ cd apps/vms_finance_app
 flutter pub get
 dart run build_runner build --delete-conflicting-outputs
 flutter test
-flutter run -d windows
+flutter run -d windows --dart-define=VMS_API_BASE_URL=http://127.0.0.1:5080
 ```
+
+O app aceita HTTP somente para `localhost`/`127.0.0.1` em builds de desenvolvimento. Qualquer API remota exige uma origem HTTPS sem path, query, fragmento ou credenciais. Sem `VMS_API_BASE_URL`, a sincronização permanece explicitamente desativada.
 
 ## Cloudflare
 

@@ -64,6 +64,7 @@ app.UseExceptionHandler(exceptionHandler => exceptionHandler.Run(async context =
         ResourceNotFoundException => (StatusCodes.Status404NotFound, "Resource not found"),
         HouseholdAccessDeniedException => (StatusCodes.Status403Forbidden, "Household access denied"),
         IdempotencyConflictException => (StatusCodes.Status409Conflict, "Idempotency conflict"),
+        InvitationNotUsableException => (StatusCodes.Status409Conflict, "Invitation is not usable"),
         ArgumentException => (StatusCodes.Status400BadRequest, "Invalid request"),
         _ => (StatusCodes.Status500InternalServerError, "Unexpected error"),
     };
@@ -94,6 +95,48 @@ api.MapPost("/households/{householdId:guid}/members", async (Guid householdId, A
     await service.AddMemberAsync(householdId, RequireUserId(user), request.UserId, request.Role, ct);
     return Results.NoContent();
 });
+
+api.MapDelete("/households/{householdId:guid}/members/{memberUserId}", async (Guid householdId, string memberUserId, ClaimsPrincipal user, FinanceService service, CancellationToken ct) =>
+{
+    await service.RemoveMemberAsync(householdId, RequireUserId(user), memberUserId, ct);
+    return Results.NoContent();
+});
+
+api.MapDelete("/households/{householdId:guid}/membership", async (Guid householdId, ClaimsPrincipal user, FinanceService service, CancellationToken ct) =>
+{
+    await service.LeaveHouseholdAsync(householdId, RequireUserId(user), ct);
+    return Results.NoContent();
+});
+
+api.MapPost("/households/{householdId:guid}/invitations", async (Guid householdId, CreateInvitationRequest request, ClaimsPrincipal user, FinanceService service, CancellationToken ct) =>
+{
+    if (request.ValidForHours is < 1 or > 720)
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["validForHours"] = ["Invitation validity must be between 1 and 720 hours."],
+        });
+    }
+
+    var result = await service.CreateInvitationAsync(
+        householdId,
+        RequireUserId(user),
+        TimeSpan.FromHours(request.ValidForHours),
+        ct);
+    return Results.Created($"/api/households/{householdId}/invitations/{result.Id}", result);
+});
+
+api.MapGet("/households/{householdId:guid}/invitations", (Guid householdId, ClaimsPrincipal user, FinanceService service, CancellationToken ct) =>
+    service.ListInvitationsAsync(householdId, RequireUserId(user), ct));
+
+api.MapDelete("/households/{householdId:guid}/invitations/{invitationId:guid}", async (Guid householdId, Guid invitationId, ClaimsPrincipal user, FinanceService service, CancellationToken ct) =>
+{
+    await service.RevokeInvitationAsync(householdId, invitationId, RequireUserId(user), ct);
+    return Results.NoContent();
+});
+
+api.MapPost("/household-invitations/accept", async (AcceptInvitationRequest request, ClaimsPrincipal user, FinanceService service, CancellationToken ct) =>
+    Results.Ok(await service.AcceptInvitationAsync(RequireUserId(user), request.Token, ct)));
 
 api.MapPost("/households/{householdId:guid}/entries", async (Guid householdId, CreateEntryRequest request, ClaimsPrincipal user, FinanceService service, CancellationToken ct) =>
 {
@@ -134,6 +177,8 @@ public partial class Program;
 
 public sealed record CreateHouseholdRequest(string Name);
 public sealed record AddMemberRequest(string UserId, HouseholdRole Role);
+public sealed record CreateInvitationRequest(int ValidForHours = 168);
+public sealed record AcceptInvitationRequest(string Token);
 public sealed record CreateEntryRequest(Guid Id, EntryDirection Direction, long AmountInCents, string Description, DateOnly OccurredOn, string IdempotencyKey);
 public sealed record SyncEntriesRequest(IReadOnlyList<CreateEntryRequest>? Operations);
 
