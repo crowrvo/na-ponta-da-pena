@@ -1,6 +1,0 @@
-@VmsFinance.Api_HostAddress = http://localhost:5072
-
-GET {{VmsFinance.Api_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
