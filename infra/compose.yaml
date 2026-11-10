@@ -2,20 +2,30 @@ services:
   postgres:
     image: postgres:17-alpine
     restart: unless-stopped
+    shm_size: 256mb
+    stop_grace_period: 30s
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-vms_finance}
       POSTGRES_USER: ${POSTGRES_USER:-vms_finance}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD in infra/.env}
+      PGDATA: /var/lib/postgresql/data/pgdata
     ports:
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - vms_finance_postgres:/var/lib/postgresql/data
+    tmpfs:
+      - /tmp
+      - /var/run/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-vms_finance} -d ${POSTGRES_DB:-vms_finance}"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 12
+      start_period: 10s
+    security_opt:
+      - no-new-privileges:true
 
 volumes:
   vms_finance_postgres:
+    name: vms_finance_postgres
 

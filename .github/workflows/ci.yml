@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -11,17 +16,33 @@ permissions:
 jobs:
   backend:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 10.0.x
+          cache: true
+          cache-dependency-path: |
+            **/*.csproj
+            global.json
       - run: dotnet restore VmsFinance.slnx
+      - name: Verify formatting
+        run: dotnet format VmsFinance.slnx --verify-no-changes --no-restore
       - run: dotnet build VmsFinance.slnx --configuration Release --no-restore
-      - run: dotnet test VmsFinance.slnx --configuration Release --no-build
+      - run: dotnet test VmsFinance.slnx --configuration Release --no-build --logger "trx;LogFileName=backend-tests.trx" --results-directory TestResults
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-results
+          path: TestResults
+          if-no-files-found: ignore
+          retention-days: 7
 
   app:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: apps/vms_finance_app
@@ -29,10 +50,23 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
+          flutter-version: 3.41.4
           channel: stable
-      - run: flutter pub get
+          cache: true
+      - name: Resolve locked dependencies
+        run: flutter pub get --enforce-lockfile
       - run: dart run build_runner build --delete-conflicting-outputs
+      - name: Ensure generated code is committed
+        run: git diff --exit-code
       - run: dart format --output=none --set-exit-if-changed lib test
       - run: flutter analyze
-      - run: flutter test
+      - run: flutter test --coverage
+      - name: Upload Flutter coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-coverage
+          path: apps/vms_finance_app/coverage/lcov.info
+          if-no-files-found: ignore
+          retention-days: 7
 

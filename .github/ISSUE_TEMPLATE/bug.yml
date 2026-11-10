@@ -1,0 +1,32 @@
+name: Defeito
+description: Comportamento incorreto ou regressão no VMS Finance
+title: "[Bug] "
+labels: ["type:bug"]
+body:
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Comportamento observado
+      description: Não inclua dados financeiros reais, tokens ou informações pessoais.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Comportamento esperado
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Passos para reproduzir
+      placeholder: "1. ..."
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área
+      options: [API, App, Sincronização, Banco de dados, Infraestrutura, Segurança]
+    validations:
+      required: true
