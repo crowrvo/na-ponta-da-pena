@@ -18,12 +18,14 @@ class DashboardPage extends StatelessWidget {
     required this.connectivityMonitor,
     this.syncRunner,
     this.householdStore,
+    this.onLogout,
   });
 
   final FinanceRepository repository;
   final FinanceSyncRunner? syncRunner;
   final ConnectivityMonitor connectivityMonitor;
   final HouseholdStore? householdStore;
+  final VoidCallback? onLogout;
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +35,17 @@ class DashboardPage extends StatelessWidget {
         runner: syncRunner,
       )..initialize(),
       child: Scaffold(
-        appBar: AppBar(title: const Text('VMS Finance')),
+        appBar: AppBar(
+          title: const Text('VMS Finance'),
+          actions: [
+            if (onLogout case final logout?)
+              IconButton(
+                tooltip: 'Sair',
+                onPressed: logout,
+                icon: const Icon(Icons.logout),
+              ),
+          ],
+        ),
         body: ListView(
           padding: const EdgeInsets.all(24),
           children: [

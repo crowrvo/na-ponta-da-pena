@@ -5,10 +5,12 @@
 import FlutterMacOS
 import Foundation
 
+import auth0_flutter
 import connectivity_plus
 import flutter_secure_storage_darwin
 
 func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
+  Auth0FlutterPlugin.register(with: registry.registrar(forPlugin: "Auth0FlutterPlugin"))
   ConnectivityPlusPlugin.register(with: registry.registrar(forPlugin: "ConnectivityPlusPlugin"))
   FlutterSecureStorageDarwinPlugin.register(with: registry.registrar(forPlugin: "FlutterSecureStorageDarwinPlugin"))
 }

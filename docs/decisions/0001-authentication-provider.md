@@ -22,7 +22,11 @@ Foram comparados Auth0, ZITADEL Cloud e Microsoft Entra External ID usando docum
 
 ## Plataformas
 
-O SDK Flutter do Auth0 cobre Android, iOS, macOS, Windows e web. Linux desktop permanece como risco explícito: antes de distribuí-lo, será validado um cliente OIDC genérico com navegador do sistema e redirect loopback. Essa lacuna não altera os gates de segurança nem autoriza uma implementação própria de login por senha.
+O SDK Flutter do Auth0 cobre Android, iOS, macOS, Windows e web. Linux desktop foi
+formalmente adiado porque o SDK atual não oferece essa plataforma. Antes de uma
+distribuição Linux, será avaliado um cliente OIDC genérico com navegador do sistema
+e redirect loopback. Essa lacuna não altera os gates de segurança nem autoriza uma
+implementação própria de login por senha.
 
 ## Configuração esperada
 
@@ -33,7 +37,9 @@ Authentication__Authority=https://TENANT_REGION.auth0.com/
 Authentication__Audience=https://api.crowrvo.com.br
 ```
 
-Callback, logout e web origins serão definidos por plataforma quando os identificadores dos aplicativos forem criados.
+As fórmulas de callback, configuração externa e ação mínima do tenant estão em
+`docs/auth0-setup.md`. Os valores reais só serão preenchidos quando o tenant e a
+Native Application existirem.
 
 ## Referências verificadas em 2026-11-10
 

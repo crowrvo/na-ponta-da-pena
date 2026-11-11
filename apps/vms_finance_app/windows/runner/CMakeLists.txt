@@ -29,11 +29,19 @@ target_compile_definitions(${BINARY_NAME} PRIVATE "FLUTTER_VERSION_BUILD=${FLUTT
 
 # Disable Windows macros that collide with C++ standard library functions.
 target_compile_definitions(${BINARY_NAME} PRIVATE "NOMINMAX")
+if(DEFINED ENV{VMS_AUTH0_WINDOWS_CALLBACK_URL})
+  target_compile_definitions(${BINARY_NAME} PRIVATE
+    "VMS_AUTH0_WINDOWS_CALLBACK_URL=L\"$ENV{VMS_AUTH0_WINDOWS_CALLBACK_URL}\"")
+else()
+  target_compile_definitions(${BINARY_NAME} PRIVATE
+    "VMS_AUTH0_WINDOWS_CALLBACK_URL=L\"\"")
+endif()
 
 # Add dependency libraries and include directories. Add any application-specific
 # dependencies here.
 target_link_libraries(${BINARY_NAME} PRIVATE flutter flutter_wrapper_app)
 target_link_libraries(${BINARY_NAME} PRIVATE "dwmapi.lib")
+target_link_libraries(${BINARY_NAME} PRIVATE "advapi32.lib" "shell32.lib")
 target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}")
 
 # Run the Flutter tool portions of the build. This must not be removed.

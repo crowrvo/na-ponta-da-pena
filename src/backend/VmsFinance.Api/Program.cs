@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -45,13 +46,39 @@ if (developmentAuthenticationEnabled)
 }
 else
 {
+    var authority = builder.Configuration["Authentication:Authority"];
+    var audience = builder.Configuration["Authentication:Audience"];
+    if (!string.IsNullOrWhiteSpace(authority) && !IsValidAuthority(authority))
+    {
+        throw new InvalidOperationException(
+            "Authentication authority must be an HTTPS origin ending with '/'.");
+    }
+    if (!string.IsNullOrWhiteSpace(audience) && !IsValidAudience(audience))
+    {
+        throw new InvalidOperationException(
+            "Authentication audience must be an HTTPS URI without credentials, query or fragment.");
+    }
     builder.Services
         .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(options =>
         {
-            options.Authority = builder.Configuration["Authentication:Authority"];
-            options.Audience = builder.Configuration["Authentication:Audience"];
+            options.Authority = authority;
+            options.Audience = audience;
             options.RequireHttpsMetadata = true;
+            options.MapInboundClaims = false;
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidIssuer = authority,
+                ValidateAudience = true,
+                ValidAudience = audience,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                RequireExpirationTime = true,
+                RequireSignedTokens = true,
+                ClockSkew = TimeSpan.FromMinutes(1),
+                NameClaimType = "sub",
+            };
         });
 }
 builder.Services.AddAuthorization();
@@ -108,10 +135,15 @@ app.MapGet("/", () => Results.Ok(new
 {
     service = "VMS Finance API",
     status = "bootstrap",
-    message = "Financial endpoints remain disabled until authentication is completed."
+    message = "Financial endpoints require an authenticated user."
 })).AllowAnonymous();
 
 var api = app.MapGroup("/api").RequireAuthorization();
+
+api.MapGet("/auth/session", (ClaimsPrincipal user) => Results.Ok(new
+{
+    userId = RequireUserId(user),
+}));
 
 api.MapPost("/households", async (CreateHouseholdRequest request, ClaimsPrincipal user, FinanceService service, CancellationToken ct) =>
 {
@@ -202,6 +234,21 @@ api.MapGet("/households/{householdId:guid}/entries", (Guid householdId, int year
 static string RequireUserId(ClaimsPrincipal user) =>
     user.FindFirstValue("sub") ?? user.FindFirstValue(ClaimTypes.NameIdentifier)
     ?? throw new HouseholdAccessDeniedException("Authenticated user id is missing.");
+
+static bool IsValidAuthority(string value) =>
+    Uri.TryCreate(value, UriKind.Absolute, out var uri)
+    && uri.Scheme == Uri.UriSchemeHttps
+    && string.IsNullOrEmpty(uri.UserInfo)
+    && uri.AbsolutePath == "/"
+    && string.IsNullOrEmpty(uri.Query)
+    && string.IsNullOrEmpty(uri.Fragment);
+
+static bool IsValidAudience(string value) =>
+    Uri.TryCreate(value, UriKind.Absolute, out var uri)
+    && uri.Scheme == Uri.UriSchemeHttps
+    && string.IsNullOrEmpty(uri.UserInfo)
+    && string.IsNullOrEmpty(uri.Query)
+    && string.IsNullOrEmpty(uri.Fragment);
 
 app.Run();
 

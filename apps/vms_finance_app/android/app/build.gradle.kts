@@ -24,10 +24,14 @@ android {
         applicationId = "br.com.crowrvo.vms_finance_app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        minSdk = 26
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["auth0Domain"] =
+            System.getenv("VMS_AUTH0_DOMAIN") ?: "auth0.invalid"
+        manifestPlaceholders["auth0Scheme"] =
+            System.getenv("VMS_AUTH0_SCHEME") ?: "vmsfinance"
     }
 
     buildTypes {

@@ -41,6 +41,10 @@ $env:Authentication__Authority='https://TENANT_REGION.auth0.com/'
 $env:Authentication__Audience='https://api.crowrvo.com.br'
 ```
 
+O procedimento completo para Native Application, callbacks, Flutter e renovação
+está em [auth0-setup.md](auth0-setup.md). Os valores reais devem ficar em
+`auth0.local.ps1`, ignorado pelo Git.
+
 Enquanto o tenant não existir, o harness local exige ambiente `Development`,
 flag explícita, token fornecido fora do Git e identificador de usuário local:
 
@@ -65,6 +69,10 @@ flutter run -d windows `
   --dart-define=VMS_API_BASE_URL=http://127.0.0.1:5080 `
   --dart-define=VMS_DEVELOPMENT_ACCESS_TOKEN=<mesmo-token-da-sessao>
 ```
+
+Sem os identificadores Auth0, o fluxo local acima continua usando exclusivamente o
+harness de desenvolvimento. Com Auth0 configurado, use os `--dart-define` descritos
+em `auth0-setup.md`; o login passa a usar Authorization Code + PKCE.
 
 O app aceita HTTP somente para `localhost`/`127.0.0.1` em builds de desenvolvimento. Qualquer API remota exige uma origem HTTPS sem path, query, fragmento ou credenciais. Sem `VMS_API_BASE_URL`, a sincronização permanece explicitamente desativada.
 

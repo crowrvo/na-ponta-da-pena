@@ -128,3 +128,10 @@ class DioEntrySyncApi implements EntrySyncApi {
 abstract interface class AccessTokenProvider {
   Future<String?> readAccessToken();
 }
+
+class EmptyAccessTokenProvider implements AccessTokenProvider {
+  const EmptyAccessTokenProvider();
+
+  @override
+  Future<String?> readAccessToken() async => null;
+}

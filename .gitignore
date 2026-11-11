@@ -10,6 +10,7 @@
 **/.flutter-plugins
 **/.flutter-plugins-dependencies
 .env
+*.local.ps1
 infra/.env
 cloudflared/
 *.db
