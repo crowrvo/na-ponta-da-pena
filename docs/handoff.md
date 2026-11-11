@@ -54,6 +54,7 @@ Concluir o VMS Finance de ponta a ponta, incluindo arquitetura, organização, f
 - Visão financeira concluída: isolamento SQLite por família, resumo mensal, navegação entre meses, lista com status de sync, formulário validado de receita/despesa e persistência offline. Teste com banco em arquivo confirma lançamento e outbox após fechar e reabrir.
 - Validação integrada: geração Drift reproduzível, `flutter analyze` limpo, 41 testes Flutter e 18 testes .NET aprovados. O CI do commit anterior `efe4fb4` também concluiu com sucesso.
 - Entrega publicada no commit `cd87b18`. Issues `#3`, `#4`, `#5` e `#9` foram concluídas e movidas para `Done`. O Project agora tem 9 itens: 7 concluídos, `#6` em andamento e `#7`/`#8` em `Todo`; `#8` e `#7` preservam os bloqueios de autenticação e publicação.
+- Branch `main` protegida contra force-push e exclusão, com histórico linear obrigatório. Push direto regular continua permitido para não interromper a automação atual; checks obrigatórios serão ativados quando o fluxo migrar para pull requests.
 
 ## Próxima ação
 

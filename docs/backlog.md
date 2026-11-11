@@ -8,7 +8,7 @@
 - [x] CI de backend e app.
 - [x] Escolher provedor OIDC e modelar famílias/convites.
 - [ ] Instalar PostgreSQL local ou Docker Desktop.
-- [ ] Configurar proteção da branch `main`.
+- [x] Configurar proteção da branch `main`.
 
 ## Sprint 1 — Primeiro fluxo vertical
 
