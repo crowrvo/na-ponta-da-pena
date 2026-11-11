@@ -65,12 +65,12 @@ Concluir o VMS Finance de ponta a ponta, incluindo arquitetura, organização, f
 - Retomada de 2026-11-11 para a Issue `#10`: worktree limpo e `main` alinhada com `origin/main` no commit `0118e97`; o CI desse commit foi confirmado como aprovado. A Issue `#10` foi movida para `In Progress`; `#7` e `#8` permanecem em `Todo`. Iniciada exclusivamente a automação do E2E Flutter → Minimal API → PostgreSQL em GitHub Actions, sem tenant Auth0, publicação, túnel ou alteração de DNS.
 - Marco da Issue `#10`: o workflow `CI` ganhou o job `local-mvp-e2e`, com PostgreSQL 17 efêmero limitado ao runner/loopback, banco/usuário/senha/token aleatórios por job e mascarados, migrações EF Core, API em `Development` vinculada a `127.0.0.1:5080`, execução de `test/local_mvp_integration_test.dart` e teardown defensivo da API, log temporário e container. Validações locais aprovadas: YAML lint, `git diff --check`, formatação e 20 testes .NET, geração Drift reproduzível, formatação/análise Flutter e 44 testes (com o E2E corretamente ignorado sem habilitação explícita). A execução real do novo job no GitHub Actions ainda será confirmada após o push.
 - Primeira execução do novo job no GitHub Actions (`8438612`): PostgreSQL, credenciais, migrações e teardown passaram; o E2E detectou que `launchSettings.json` sobrepunha `ASPNETCORE_URLS` e iniciava a API em `localhost:5072`. O workflow foi corrigido para ignorar o launch profile e passar explicitamente `--urls http://127.0.0.1:5080`; backend e app permaneceram aprovados e nenhum recurso externo foi criado.
+- Issue `#10` concluída no commit `bca6937`. O CI `42953907924` passou integralmente: backend, app e `local-mvp-e2e`; no E2E, credenciais exclusivas foram mascaradas, PostgreSQL efêmero iniciou, migrações foram aplicadas, a API respondeu somente em loopback/`Development`, `test/local_mvp_integration_test.dart` passou e o teardown encerrou API/container e removeu o log temporário. A Issue foi fechada e movida para `Done`; `#7` e `#8` permanecem em `Todo`. Nenhum tenant Auth0, publicação, Cloudflare Tunnel, DNS ou segredo versionado foi criado.
 
 ## Próxima ação
 
-1. Concluir a Issue `#10`: automatizar o E2E Flutter → API → PostgreSQL em CI com banco efêmero e credenciais exclusivas do job, sem publicar serviços.
-2. Depois, conectar Auth0 real ao `AccessTokenProvider` quando os identificadores públicos estiverem disponíveis e validar PKCE em Android, iOS e Windows.
-3. Manter a Issue `#7` bloqueada até autenticação real e HTTPS estarem implementados e validados; não iniciar o túnel antes disso.
+1. Em um novo chat, retomar a Issue `#8` somente quando os identificadores públicos do Auth0 estiverem disponíveis, conectando o Auth0 real ao `AccessTokenProvider` e validando PKCE em Android, iOS e Windows.
+2. Manter a Issue `#7` bloqueada até autenticação real e HTTPS estarem implementados e validados; não iniciar o túnel antes disso.
 
 ## Restrições permanentes
 
