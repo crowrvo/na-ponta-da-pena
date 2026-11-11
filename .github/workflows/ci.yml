@@ -70,3 +70,123 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+  local-mvp-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://127.0.0.1:5080
+      DevelopmentAuthentication__Enabled: "true"
+      DevelopmentAuthentication__UserId: ci-local-user
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+          cache: true
+          cache-dependency-path: |
+            **/*.csproj
+            global.json
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.41.4
+          channel: stable
+          cache: true
+      - name: Generate job-only credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          suffix="$(openssl rand -hex 12)"
+          postgres_database="vms_${suffix}"
+          postgres_user="vms_${suffix}"
+          postgres_password="$(openssl rand -base64 48 | tr -d '\n')"
+          development_token="$(openssl rand -base64 48 | tr -d '\n')"
+
+          for value in "$postgres_database" "$postgres_user" "$postgres_password" "$development_token"; do
+            echo "::add-mask::$value"
+          done
+
+          {
+            echo "POSTGRES_DB=$postgres_database"
+            echo "POSTGRES_USER=$postgres_user"
+            echo "POSTGRES_PASSWORD=$postgres_password"
+            echo "DevelopmentAuthentication__Token=$development_token"
+            echo "ConnectionStrings__VmsFinance=Host=127.0.0.1;Port=5432;Database=$postgres_database;Username=$postgres_user;Password=$postgres_password"
+          } >> "$GITHUB_ENV"
+      - name: Start ephemeral PostgreSQL
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --detach --rm \
+            --name vms-finance-postgres \
+            --publish 127.0.0.1:5432:5432 \
+            --env POSTGRES_DB \
+            --env POSTGRES_USER \
+            --env POSTGRES_PASSWORD \
+            postgres:17-alpine
+
+          for attempt in {1..30}; do
+            if docker exec vms-finance-postgres pg_isready --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+
+          docker logs vms-finance-postgres
+          exit 1
+      - name: Restore backend and apply migrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet restore VmsFinance.slnx
+          dotnet tool restore
+          dotnet tool run dotnet-ef database update \
+            --project src/backend/VmsFinance.Infrastructure \
+            --startup-project src/backend/VmsFinance.Api
+      - name: Resolve locked Flutter dependencies
+        working-directory: apps/vms_finance_app
+        run: flutter pub get --enforce-lockfile
+      - name: Run Flutter to API to PostgreSQL E2E
+        shell: bash
+        run: |
+          set -euo pipefail
+          api_log="$RUNNER_TEMP/vms-finance-api.log"
+          dotnet run --project src/backend/VmsFinance.Api --no-restore >"$api_log" 2>&1 &
+          api_pid=$!
+
+          cleanup() {
+            kill "$api_pid" 2>/dev/null || true
+            wait "$api_pid" 2>/dev/null || true
+            rm -f "$api_log"
+          }
+          trap cleanup EXIT INT TERM
+
+          for attempt in {1..30}; do
+            if curl --silent --show-error --fail http://127.0.0.1:5080/health/live >/dev/null; then
+              break
+            fi
+            if ! kill -0 "$api_pid" 2>/dev/null; then
+              echo "The API exited before becoming healthy."
+              sed -E 's/(Password|Token)=[^;[:space:]]+/\1=***/g' "$api_log"
+              exit 1
+            fi
+            if [[ "$attempt" == 30 ]]; then
+              echo "The API did not become healthy in time."
+              sed -E 's/(Password|Token)=[^;[:space:]]+/\1=***/g' "$api_log"
+              exit 1
+            fi
+            sleep 2
+          done
+
+          cd apps/vms_finance_app
+          flutter test test/local_mvp_integration_test.dart \
+            --dart-define=VMS_RUN_LOCAL_MVP_TEST=true \
+            --dart-define=VMS_API_BASE_URL=http://127.0.0.1:5080 \
+            --dart-define=VMS_DEVELOPMENT_ACCESS_TOKEN="$DevelopmentAuthentication__Token"
+      - name: Tear down ephemeral services
+        if: always()
+        shell: bash
+        run: |
+          docker rm --force vms-finance-postgres 2>/dev/null || true
+          rm -f "$RUNNER_TEMP/vms-finance-api.log"
+
