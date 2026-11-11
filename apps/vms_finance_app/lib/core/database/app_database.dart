@@ -35,14 +35,39 @@ class SyncOutbox extends Table {
   Set<Column<Object>> get primaryKey => {operationId};
 }
 
-@DriftDatabase(tables: [LocalFinanceEntries, SyncOutbox])
+class CachedHouseholds extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text().withLength(min: 1, max: 120)();
+  TextColumn get role => text().withLength(min: 1, max: 16)();
+  DateTimeColumn get refreshedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+class HouseholdPreferences extends Table {
+  IntColumn get id => integer().withDefault(const Constant(1))();
+  TextColumn get activeHouseholdId => text().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+@DriftDatabase(
+  tables: [
+    LocalFinanceEntries,
+    SyncOutbox,
+    CachedHouseholds,
+    HouseholdPreferences,
+  ],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -52,6 +77,10 @@ class AppDatabase extends _$AppDatabase {
         await migrator.addColumn(syncOutbox, syncOutbox.attemptCount);
         await migrator.addColumn(syncOutbox, syncOutbox.nextAttemptAt);
         await migrator.addColumn(syncOutbox, syncOutbox.lastError);
+      }
+      if (from < 3) {
+        await migrator.createTable(cachedHouseholds);
+        await migrator.createTable(householdPreferences);
       }
     },
   );

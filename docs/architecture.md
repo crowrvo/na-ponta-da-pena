@@ -46,6 +46,8 @@ Somente owners criam, listam ou revogam convites. O token de convite possui 256 
 
 Um member pode sair da família; um owner precisa transferir a responsabilidade ou excluir a família antes de sair. Owners podem remover members, mas não outros owners.
 
+No app, famílias remotas são armazenadas em cache no SQLite e a seleção ativa é persistida. A dashboard funciona offline com esse cache. A tela financeira só aceita um UUID de família válido; consultas mensais também filtram por esse identificador, preservando isolamento local além da autorização aplicada pela API.
+
 ## Segurança antes da publicação
 
 - provedor OIDC/OAuth 2.1 definido;

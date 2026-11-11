@@ -20,12 +20,16 @@ class FinanceRepository implements FinanceEntriesRepository {
   }
 
   @override
-  Stream<List<FinanceEntry>> watchEntriesForMonth(DateTime month) {
+  Stream<List<FinanceEntry>> watchEntriesForMonth({
+    required String householdId,
+    required DateTime month,
+  }) {
     final start = DateTime.utc(month.year, month.month);
     final end = DateTime.utc(month.year, month.month + 1);
     final query = _database.select(_database.localFinanceEntries)
       ..where(
         (entry) =>
+            entry.householdId.equals(householdId) &
             entry.occurredAt.isBiggerOrEqualValue(start) &
             entry.occurredAt.isSmallerThanValue(end),
       )
@@ -49,8 +53,13 @@ class FinanceRepository implements FinanceEntriesRepository {
   }
 
   @override
-  Stream<MonthlyFinanceSummary> watchSummaryForMonth(DateTime month) {
-    return watchEntriesForMonth(month).map((entries) {
+  Stream<MonthlyFinanceSummary> watchSummaryForMonth({
+    required String householdId,
+    required DateTime month,
+  }) {
+    return watchEntriesForMonth(householdId: householdId, month: month).map((
+      entries,
+    ) {
       var income = 0;
       var expense = 0;
       for (final entry in entries) {

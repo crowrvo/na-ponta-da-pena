@@ -11,6 +11,8 @@ import 'core/sync/entry_sync_api.dart';
 import 'core/sync/finance_sync_service.dart';
 import 'core/sync/secure_storage_access_token_provider.dart';
 import 'features/dashboard/dashboard_page.dart';
+import 'features/households/data/household_api.dart';
+import 'features/households/data/household_repository.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,12 +26,14 @@ class VmsFinanceApp extends StatefulWidget {
     this.closeDatabaseOnDispose = true,
     this.syncRunner,
     this.connectivityMonitor,
+    this.householdStore,
   });
 
   final AppDatabase database;
   final bool closeDatabaseOnDispose;
   final FinanceSyncRunner? syncRunner;
   final ConnectivityMonitor? connectivityMonitor;
+  final HouseholdStore? householdStore;
 
   @override
   State<VmsFinanceApp> createState() => _VmsFinanceAppState();
@@ -39,23 +43,38 @@ class _VmsFinanceAppState extends State<VmsFinanceApp> {
   late final FinanceRepository repository = FinanceRepository(widget.database);
   late final ConnectivityMonitor connectivityMonitor =
       widget.connectivityMonitor ?? PluginConnectivityMonitor();
+  late final Uri? apiEndpoint = parseVmsApiBaseUrl(
+    const String.fromEnvironment('VMS_API_BASE_URL'),
+    allowLocalHttp: !kReleaseMode,
+  );
+  late final Dio? apiClient = apiEndpoint == null
+      ? null
+      : Dio(BaseOptions(baseUrl: apiEndpoint.toString()));
+  late final AccessTokenProvider tokenProvider =
+      const SecureStorageAccessTokenProvider(FlutterSecureStorage());
   late final FinanceSyncRunner? syncRunner =
       widget.syncRunner ?? _createConfiguredSyncRunner();
+  late final HouseholdStore? householdStore =
+      widget.householdStore ?? _createConfiguredHouseholdStore();
 
   FinanceSyncRunner? _createConfiguredSyncRunner() {
-    const apiBaseUrl = String.fromEnvironment('VMS_API_BASE_URL');
-    final endpoint = parseVmsApiBaseUrl(
-      apiBaseUrl,
-      allowLocalHttp: !kReleaseMode,
-    );
-    if (endpoint == null) return null;
+    final client = apiClient;
+    if (client == null) return null;
 
     return FinanceSyncService(
       database: widget.database,
-      api: DioEntrySyncApi(Dio(BaseOptions(baseUrl: endpoint.toString()))),
-      tokenProvider: const SecureStorageAccessTokenProvider(
-        FlutterSecureStorage(),
-      ),
+      api: DioEntrySyncApi(client),
+      tokenProvider: tokenProvider,
+    );
+  }
+
+  HouseholdStore? _createConfiguredHouseholdStore() {
+    final client = apiClient;
+    if (client == null) return null;
+    return HouseholdRepository(
+      database: widget.database,
+      api: DioHouseholdApi(client),
+      tokenProvider: tokenProvider,
     );
   }
 
@@ -80,6 +99,7 @@ class _VmsFinanceAppState extends State<VmsFinanceApp> {
         repository: repository,
         syncRunner: syncRunner,
         connectivityMonitor: connectivityMonitor,
+        householdStore: householdStore,
       ),
     );
   }

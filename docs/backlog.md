@@ -13,10 +13,10 @@
 ## Sprint 1 — Primeiro fluxo vertical
 
 - [ ] Cadastro e login.
-- [ ] Criar/entrar em uma família.
-- [ ] Registrar receita/despesa offline.
+- [x] Criar/entrar em uma família.
+- [x] Registrar receita/despesa offline.
 - [x] Sincronizar alterações idempotentes.
-- [ ] Listar lançamentos e saldo mensal.
+- [x] Listar lançamentos e saldo mensal.
 - [x] Testar isolamento entre famílias.
 
 ## Sprint 2 — Operação segura

@@ -48,13 +48,18 @@ Concluir o VMS Finance de ponta a ponta, incluindo arquitetura, organização, f
 - Integração Flutter concluída no worktree: `FinanceSyncCubit`, disparo por conectividade/ação manual, estados na dashboard e configuração exclusiva por `VMS_API_BASE_URL`. Origem remota exige HTTPS; HTTP só é aceito para loopback em desenvolvimento. Operações sem UUID de família ficam `local-only` e nunca chegam à API.
 - Gestão de famílias concluída no backend: convite opaco de 256 bits com somente hash persistido, validade/uso único/revogação, listagem de metadados sem segredos, aceite, remoção e saída de members. A migração `AddHouseholdInvitations` foi gerada, mas não aplicada sem PostgreSQL local.
 - Validação atual: `dotnet test` com 18 testes e `flutter analyze`/`flutter test` com 18 testes aprovados. Nenhum DNS, tenant, túnel ou serviço externo foi alterado.
+- GitHub atualizado após `efe4fb4`: Issues `#1` e `#2` concluídas; Issue `#8` criada para a integração real Auth0/PKCE e mantida em `Todo`; Issue `#9` criada para o fluxo Flutter de famílias e movida para `In Progress`. A publicação continua bloqueada.
+- Em andamento: feature Flutter de famílias/seleção ativa e, em paralelo sem sobreposição de arquivos, formulário/lista mensal com `FinanceOverviewCubit`.
+- Fluxo Flutter integrado: cache Drift v3 e seleção ativa de famílias, cliente autenticado, fallback offline, `HouseholdCubit` e UI para listar/criar/aceitar convite/abrir família. A dashboard abre a visão financeira somente com UUID ativo válido.
+- Visão financeira concluída: isolamento SQLite por família, resumo mensal, navegação entre meses, lista com status de sync, formulário validado de receita/despesa e persistência offline. Teste com banco em arquivo confirma lançamento e outbox após fechar e reabrir.
+- Validação integrada: geração Drift reproduzível, `flutter analyze` limpo, 41 testes Flutter e 18 testes .NET aprovados. O CI do commit anterior `efe4fb4` também concluiu com sucesso.
 
 ## Próxima ação
 
-1. Implementar no Flutter o fluxo útil de famílias (listar/criar/aceitar convite) e substituir `local-unassigned` por uma família selecionada antes de sincronizar.
-2. Conectar o login Auth0 ao `AccessTokenProvider` quando os identificadores públicos do tenant/native app estiverem disponíveis; validar PKCE em Android, iOS e Windows.
-3. Implementar formulário e lista mensal completos usando `FinanceOverviewCubit`, incluindo estados vazio, carregando, erro e conflitos locais.
-4. Adicionar testes de persistência PostgreSQL assim que uma instância local estiver disponível e aplicar as migrações.
+1. Conectar o login Auth0 ao `AccessTokenProvider` quando os identificadores públicos do tenant/native app estiverem disponíveis; validar PKCE em Android, iOS e Windows.
+2. Adicionar testes de persistência PostgreSQL assim que uma instância local estiver disponível e aplicar as migrações.
+3. Implementar transferência/exclusão de família e uma interface de owner para criar/revogar convites e remover members.
+4. Preparar observabilidade sem dados financeiros, backup/restauração e distribuição interna.
 5. Manter a Issue `#7` bloqueada até autenticação e HTTPS estarem implementados e validados; não iniciar o túnel antes disso.
 
 ## Restrições permanentes

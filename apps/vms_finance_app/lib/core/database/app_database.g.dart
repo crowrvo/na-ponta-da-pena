@@ -1070,12 +1070,552 @@ class SyncOutboxCompanion extends UpdateCompanion<SyncOutboxData> {
   }
 }
 
+class $CachedHouseholdsTable extends CachedHouseholds
+    with TableInfo<$CachedHouseholdsTable, CachedHousehold> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CachedHouseholdsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 120,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _roleMeta = const VerificationMeta('role');
+  @override
+  late final GeneratedColumn<String> role = GeneratedColumn<String>(
+    'role',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 16,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _refreshedAtMeta = const VerificationMeta(
+    'refreshedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> refreshedAt = GeneratedColumn<DateTime>(
+    'refreshed_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, name, role, refreshedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'cached_households';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CachedHousehold> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('role')) {
+      context.handle(
+        _roleMeta,
+        role.isAcceptableOrUnknown(data['role']!, _roleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_roleMeta);
+    }
+    if (data.containsKey('refreshed_at')) {
+      context.handle(
+        _refreshedAtMeta,
+        refreshedAt.isAcceptableOrUnknown(
+          data['refreshed_at']!,
+          _refreshedAtMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_refreshedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CachedHousehold map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CachedHousehold(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      role: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}role'],
+      )!,
+      refreshedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}refreshed_at'],
+      )!,
+    );
+  }
+
+  @override
+  $CachedHouseholdsTable createAlias(String alias) {
+    return $CachedHouseholdsTable(attachedDatabase, alias);
+  }
+}
+
+class CachedHousehold extends DataClass implements Insertable<CachedHousehold> {
+  final String id;
+  final String name;
+  final String role;
+  final DateTime refreshedAt;
+  const CachedHousehold({
+    required this.id,
+    required this.name,
+    required this.role,
+    required this.refreshedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    map['role'] = Variable<String>(role);
+    map['refreshed_at'] = Variable<DateTime>(refreshedAt);
+    return map;
+  }
+
+  CachedHouseholdsCompanion toCompanion(bool nullToAbsent) {
+    return CachedHouseholdsCompanion(
+      id: Value(id),
+      name: Value(name),
+      role: Value(role),
+      refreshedAt: Value(refreshedAt),
+    );
+  }
+
+  factory CachedHousehold.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CachedHousehold(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      role: serializer.fromJson<String>(json['role']),
+      refreshedAt: serializer.fromJson<DateTime>(json['refreshedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'role': serializer.toJson<String>(role),
+      'refreshedAt': serializer.toJson<DateTime>(refreshedAt),
+    };
+  }
+
+  CachedHousehold copyWith({
+    String? id,
+    String? name,
+    String? role,
+    DateTime? refreshedAt,
+  }) => CachedHousehold(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    role: role ?? this.role,
+    refreshedAt: refreshedAt ?? this.refreshedAt,
+  );
+  CachedHousehold copyWithCompanion(CachedHouseholdsCompanion data) {
+    return CachedHousehold(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      role: data.role.present ? data.role.value : this.role,
+      refreshedAt: data.refreshedAt.present
+          ? data.refreshedAt.value
+          : this.refreshedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CachedHousehold(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('role: $role, ')
+          ..write('refreshedAt: $refreshedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, name, role, refreshedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CachedHousehold &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.role == this.role &&
+          other.refreshedAt == this.refreshedAt);
+}
+
+class CachedHouseholdsCompanion extends UpdateCompanion<CachedHousehold> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<String> role;
+  final Value<DateTime> refreshedAt;
+  final Value<int> rowid;
+  const CachedHouseholdsCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.role = const Value.absent(),
+    this.refreshedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CachedHouseholdsCompanion.insert({
+    required String id,
+    required String name,
+    required String role,
+    required DateTime refreshedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       name = Value(name),
+       role = Value(role),
+       refreshedAt = Value(refreshedAt);
+  static Insertable<CachedHousehold> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<String>? role,
+    Expression<DateTime>? refreshedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (role != null) 'role': role,
+      if (refreshedAt != null) 'refreshed_at': refreshedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CachedHouseholdsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? name,
+    Value<String>? role,
+    Value<DateTime>? refreshedAt,
+    Value<int>? rowid,
+  }) {
+    return CachedHouseholdsCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      role: role ?? this.role,
+      refreshedAt: refreshedAt ?? this.refreshedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (role.present) {
+      map['role'] = Variable<String>(role.value);
+    }
+    if (refreshedAt.present) {
+      map['refreshed_at'] = Variable<DateTime>(refreshedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CachedHouseholdsCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('role: $role, ')
+          ..write('refreshedAt: $refreshedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $HouseholdPreferencesTable extends HouseholdPreferences
+    with TableInfo<$HouseholdPreferencesTable, HouseholdPreference> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $HouseholdPreferencesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _activeHouseholdIdMeta = const VerificationMeta(
+    'activeHouseholdId',
+  );
+  @override
+  late final GeneratedColumn<String> activeHouseholdId =
+      GeneratedColumn<String>(
+        'active_household_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  @override
+  List<GeneratedColumn> get $columns => [id, activeHouseholdId];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'household_preferences';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<HouseholdPreference> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('active_household_id')) {
+      context.handle(
+        _activeHouseholdIdMeta,
+        activeHouseholdId.isAcceptableOrUnknown(
+          data['active_household_id']!,
+          _activeHouseholdIdMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  HouseholdPreference map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return HouseholdPreference(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      activeHouseholdId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}active_household_id'],
+      ),
+    );
+  }
+
+  @override
+  $HouseholdPreferencesTable createAlias(String alias) {
+    return $HouseholdPreferencesTable(attachedDatabase, alias);
+  }
+}
+
+class HouseholdPreference extends DataClass
+    implements Insertable<HouseholdPreference> {
+  final int id;
+  final String? activeHouseholdId;
+  const HouseholdPreference({required this.id, this.activeHouseholdId});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    if (!nullToAbsent || activeHouseholdId != null) {
+      map['active_household_id'] = Variable<String>(activeHouseholdId);
+    }
+    return map;
+  }
+
+  HouseholdPreferencesCompanion toCompanion(bool nullToAbsent) {
+    return HouseholdPreferencesCompanion(
+      id: Value(id),
+      activeHouseholdId: activeHouseholdId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(activeHouseholdId),
+    );
+  }
+
+  factory HouseholdPreference.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return HouseholdPreference(
+      id: serializer.fromJson<int>(json['id']),
+      activeHouseholdId: serializer.fromJson<String?>(
+        json['activeHouseholdId'],
+      ),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'activeHouseholdId': serializer.toJson<String?>(activeHouseholdId),
+    };
+  }
+
+  HouseholdPreference copyWith({
+    int? id,
+    Value<String?> activeHouseholdId = const Value.absent(),
+  }) => HouseholdPreference(
+    id: id ?? this.id,
+    activeHouseholdId: activeHouseholdId.present
+        ? activeHouseholdId.value
+        : this.activeHouseholdId,
+  );
+  HouseholdPreference copyWithCompanion(HouseholdPreferencesCompanion data) {
+    return HouseholdPreference(
+      id: data.id.present ? data.id.value : this.id,
+      activeHouseholdId: data.activeHouseholdId.present
+          ? data.activeHouseholdId.value
+          : this.activeHouseholdId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HouseholdPreference(')
+          ..write('id: $id, ')
+          ..write('activeHouseholdId: $activeHouseholdId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, activeHouseholdId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is HouseholdPreference &&
+          other.id == this.id &&
+          other.activeHouseholdId == this.activeHouseholdId);
+}
+
+class HouseholdPreferencesCompanion
+    extends UpdateCompanion<HouseholdPreference> {
+  final Value<int> id;
+  final Value<String?> activeHouseholdId;
+  const HouseholdPreferencesCompanion({
+    this.id = const Value.absent(),
+    this.activeHouseholdId = const Value.absent(),
+  });
+  HouseholdPreferencesCompanion.insert({
+    this.id = const Value.absent(),
+    this.activeHouseholdId = const Value.absent(),
+  });
+  static Insertable<HouseholdPreference> custom({
+    Expression<int>? id,
+    Expression<String>? activeHouseholdId,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (activeHouseholdId != null) 'active_household_id': activeHouseholdId,
+    });
+  }
+
+  HouseholdPreferencesCompanion copyWith({
+    Value<int>? id,
+    Value<String?>? activeHouseholdId,
+  }) {
+    return HouseholdPreferencesCompanion(
+      id: id ?? this.id,
+      activeHouseholdId: activeHouseholdId ?? this.activeHouseholdId,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (activeHouseholdId.present) {
+      map['active_household_id'] = Variable<String>(activeHouseholdId.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HouseholdPreferencesCompanion(')
+          ..write('id: $id, ')
+          ..write('activeHouseholdId: $activeHouseholdId')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $LocalFinanceEntriesTable localFinanceEntries =
       $LocalFinanceEntriesTable(this);
   late final $SyncOutboxTable syncOutbox = $SyncOutboxTable(this);
+  late final $CachedHouseholdsTable cachedHouseholds = $CachedHouseholdsTable(
+    this,
+  );
+  late final $HouseholdPreferencesTable householdPreferences =
+      $HouseholdPreferencesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1083,6 +1623,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     localFinanceEntries,
     syncOutbox,
+    cachedHouseholds,
+    householdPreferences,
   ];
 }
 
@@ -1630,6 +2172,350 @@ typedef $$SyncOutboxTableProcessedTableManager =
       SyncOutboxData,
       PrefetchHooks Function()
     >;
+typedef $$CachedHouseholdsTableCreateCompanionBuilder =
+    CachedHouseholdsCompanion Function({
+      required String id,
+      required String name,
+      required String role,
+      required DateTime refreshedAt,
+      Value<int> rowid,
+    });
+typedef $$CachedHouseholdsTableUpdateCompanionBuilder =
+    CachedHouseholdsCompanion Function({
+      Value<String> id,
+      Value<String> name,
+      Value<String> role,
+      Value<DateTime> refreshedAt,
+      Value<int> rowid,
+    });
+
+class $$CachedHouseholdsTableFilterComposer
+    extends Composer<_$AppDatabase, $CachedHouseholdsTable> {
+  $$CachedHouseholdsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get role => $composableBuilder(
+    column: $table.role,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get refreshedAt => $composableBuilder(
+    column: $table.refreshedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CachedHouseholdsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CachedHouseholdsTable> {
+  $$CachedHouseholdsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get role => $composableBuilder(
+    column: $table.role,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get refreshedAt => $composableBuilder(
+    column: $table.refreshedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CachedHouseholdsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CachedHouseholdsTable> {
+  $$CachedHouseholdsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get role =>
+      $composableBuilder(column: $table.role, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get refreshedAt => $composableBuilder(
+    column: $table.refreshedAt,
+    builder: (column) => column,
+  );
+}
+
+class $$CachedHouseholdsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CachedHouseholdsTable,
+          CachedHousehold,
+          $$CachedHouseholdsTableFilterComposer,
+          $$CachedHouseholdsTableOrderingComposer,
+          $$CachedHouseholdsTableAnnotationComposer,
+          $$CachedHouseholdsTableCreateCompanionBuilder,
+          $$CachedHouseholdsTableUpdateCompanionBuilder,
+          (
+            CachedHousehold,
+            BaseReferences<
+              _$AppDatabase,
+              $CachedHouseholdsTable,
+              CachedHousehold
+            >,
+          ),
+          CachedHousehold,
+          PrefetchHooks Function()
+        > {
+  $$CachedHouseholdsTableTableManager(
+    _$AppDatabase db,
+    $CachedHouseholdsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CachedHouseholdsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CachedHouseholdsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CachedHouseholdsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> role = const Value.absent(),
+                Value<DateTime> refreshedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CachedHouseholdsCompanion(
+                id: id,
+                name: name,
+                role: role,
+                refreshedAt: refreshedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String name,
+                required String role,
+                required DateTime refreshedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => CachedHouseholdsCompanion.insert(
+                id: id,
+                name: name,
+                role: role,
+                refreshedAt: refreshedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CachedHouseholdsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CachedHouseholdsTable,
+      CachedHousehold,
+      $$CachedHouseholdsTableFilterComposer,
+      $$CachedHouseholdsTableOrderingComposer,
+      $$CachedHouseholdsTableAnnotationComposer,
+      $$CachedHouseholdsTableCreateCompanionBuilder,
+      $$CachedHouseholdsTableUpdateCompanionBuilder,
+      (
+        CachedHousehold,
+        BaseReferences<_$AppDatabase, $CachedHouseholdsTable, CachedHousehold>,
+      ),
+      CachedHousehold,
+      PrefetchHooks Function()
+    >;
+typedef $$HouseholdPreferencesTableCreateCompanionBuilder =
+    HouseholdPreferencesCompanion Function({
+      Value<int> id,
+      Value<String?> activeHouseholdId,
+    });
+typedef $$HouseholdPreferencesTableUpdateCompanionBuilder =
+    HouseholdPreferencesCompanion Function({
+      Value<int> id,
+      Value<String?> activeHouseholdId,
+    });
+
+class $$HouseholdPreferencesTableFilterComposer
+    extends Composer<_$AppDatabase, $HouseholdPreferencesTable> {
+  $$HouseholdPreferencesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get activeHouseholdId => $composableBuilder(
+    column: $table.activeHouseholdId,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$HouseholdPreferencesTableOrderingComposer
+    extends Composer<_$AppDatabase, $HouseholdPreferencesTable> {
+  $$HouseholdPreferencesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get activeHouseholdId => $composableBuilder(
+    column: $table.activeHouseholdId,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$HouseholdPreferencesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $HouseholdPreferencesTable> {
+  $$HouseholdPreferencesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get activeHouseholdId => $composableBuilder(
+    column: $table.activeHouseholdId,
+    builder: (column) => column,
+  );
+}
+
+class $$HouseholdPreferencesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $HouseholdPreferencesTable,
+          HouseholdPreference,
+          $$HouseholdPreferencesTableFilterComposer,
+          $$HouseholdPreferencesTableOrderingComposer,
+          $$HouseholdPreferencesTableAnnotationComposer,
+          $$HouseholdPreferencesTableCreateCompanionBuilder,
+          $$HouseholdPreferencesTableUpdateCompanionBuilder,
+          (
+            HouseholdPreference,
+            BaseReferences<
+              _$AppDatabase,
+              $HouseholdPreferencesTable,
+              HouseholdPreference
+            >,
+          ),
+          HouseholdPreference,
+          PrefetchHooks Function()
+        > {
+  $$HouseholdPreferencesTableTableManager(
+    _$AppDatabase db,
+    $HouseholdPreferencesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$HouseholdPreferencesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$HouseholdPreferencesTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$HouseholdPreferencesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String?> activeHouseholdId = const Value.absent(),
+              }) => HouseholdPreferencesCompanion(
+                id: id,
+                activeHouseholdId: activeHouseholdId,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String?> activeHouseholdId = const Value.absent(),
+              }) => HouseholdPreferencesCompanion.insert(
+                id: id,
+                activeHouseholdId: activeHouseholdId,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$HouseholdPreferencesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $HouseholdPreferencesTable,
+      HouseholdPreference,
+      $$HouseholdPreferencesTableFilterComposer,
+      $$HouseholdPreferencesTableOrderingComposer,
+      $$HouseholdPreferencesTableAnnotationComposer,
+      $$HouseholdPreferencesTableCreateCompanionBuilder,
+      $$HouseholdPreferencesTableUpdateCompanionBuilder,
+      (
+        HouseholdPreference,
+        BaseReferences<
+          _$AppDatabase,
+          $HouseholdPreferencesTable,
+          HouseholdPreference
+        >,
+      ),
+      HouseholdPreference,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -1638,4 +2524,8 @@ class $AppDatabaseManager {
       $$LocalFinanceEntriesTableTableManager(_db, _db.localFinanceEntries);
   $$SyncOutboxTableTableManager get syncOutbox =>
       $$SyncOutboxTableTableManager(_db, _db.syncOutbox);
+  $$CachedHouseholdsTableTableManager get cachedHouseholds =>
+      $$CachedHouseholdsTableTableManager(_db, _db.cachedHouseholds);
+  $$HouseholdPreferencesTableTableManager get householdPreferences =>
+      $$HouseholdPreferencesTableTableManager(_db, _db.householdPreferences);
 }

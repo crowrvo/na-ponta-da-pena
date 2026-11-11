@@ -9,11 +9,14 @@ import 'finance_overview_state.dart';
 class FinanceOverviewCubit extends Cubit<FinanceOverviewState> {
   FinanceOverviewCubit({
     required FinanceEntriesRepository repository,
+    required String householdId,
     DateTime? now,
   }) : _repository = repository,
+       _householdId = _requireHouseholdId(householdId),
        super(FinanceOverviewState.initial(now ?? DateTime.now()));
 
   final FinanceEntriesRepository _repository;
+  final String _householdId;
   StreamSubscription<List<FinanceEntry>>? _entriesSubscription;
   StreamSubscription<MonthlyFinanceSummary>? _summarySubscription;
   StreamSubscription<int>? _pendingSubscription;
@@ -38,7 +41,7 @@ class FinanceOverviewCubit extends Cubit<FinanceOverviewState> {
     await _entriesSubscription?.cancel();
     await _summarySubscription?.cancel();
     _entriesSubscription = _repository
-        .watchEntriesForMonth(normalized)
+        .watchEntriesForMonth(householdId: _householdId, month: normalized)
         .listen(
           (entries) => emit(
             state.copyWith(
@@ -50,7 +53,7 @@ class FinanceOverviewCubit extends Cubit<FinanceOverviewState> {
           onError: _handleStreamError,
         );
     _summarySubscription = _repository
-        .watchSummaryForMonth(normalized)
+        .watchSummaryForMonth(householdId: _householdId, month: normalized)
         .listen(
           (summary) => emit(state.copyWith(summary: summary)),
           onError: _handleStreamError,
@@ -68,7 +71,7 @@ class FinanceOverviewCubit extends Cubit<FinanceOverviewState> {
     );
     try {
       await _repository.addEntry(
-        householdId: 'local-unassigned',
+        householdId: _householdId,
         direction: direction,
         amountInCents: amountInCents,
         description: description,
@@ -87,6 +90,12 @@ class FinanceOverviewCubit extends Cubit<FinanceOverviewState> {
     }
   }
 
+  Future<void> showPreviousMonth() =>
+      selectMonth(DateTime.utc(state.month.year, state.month.month - 1));
+
+  Future<void> showNextMonth() =>
+      selectMonth(DateTime.utc(state.month.year, state.month.month + 1));
+
   void _handleStreamError(Object _) {
     emit(
       state.copyWith(
@@ -103,4 +112,16 @@ class FinanceOverviewCubit extends Cubit<FinanceOverviewState> {
     await _pendingSubscription?.cancel();
     return super.close();
   }
+
+  static String _requireHouseholdId(String value) {
+    final normalized = value.trim();
+    if (!_uuidPattern.hasMatch(normalized)) {
+      throw ArgumentError.value(value, 'householdId', 'must be a UUID');
+    }
+    return normalized;
+  }
+
+  static final RegExp _uuidPattern = RegExp(
+    r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$',
+  );
 }
