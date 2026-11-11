@@ -1,6 +1,6 @@
 # Handoff — VMS Finance
 
-Atualizado em: 2026-11-10 (America/Sao_Paulo)
+Atualizado em: 2026-11-11 (America/Sao_Paulo)
 
 ## Objetivo atual
 
@@ -57,14 +57,16 @@ Concluir o VMS Finance de ponta a ponta, incluindo arquitetura, organização, f
 - Branch `main` protegida contra force-push e exclusão, com histórico linear obrigatório. Push direto regular continua permitido para não interromper a automação atual; checks obrigatórios serão ativados quando o fluxo migrar para pull requests.
 - CI do commit `eb0522b` aprovado integralmente: backend e app concluíram restore, geração, formatação, build, análise e testes no GitHub Actions.
 - Regra operacional solicitada pelo usuário: ao concluir uma tarefa, atualizar este handoff e iniciar a próxima em um novo chat; em retomadas agendadas, também abrir um novo chat. O foco imediato passou a ser um MVP local executável de ponta a ponta. A automação de 5 horas permanece como recuperação quando a execução parar por limite de tokens.
+- Retomada de 2026-11-10 para o MVP local: repositório confirmado limpo e alinhado com `origin/main` no commit `6bb73b3`; GitHub CLI autenticado; Project confirmado com 9 itens, sendo 7 em `Done`, Issue `#6` em `In Progress` e Issues `#7`/`#8` em `Todo`. Iniciada a auditoria de uma opção PostgreSQL local pouco intrusiva e do harness de autenticação exclusivo de `Development`; nenhuma instalação, publicação, alteração de DNS ou túnel foi iniciada até este ponto.
+- Escolha para o banco local: PostgreSQL 17 oficial em modo `extract-only` sob `%LOCALAPPDATA%\VmsFinance`, sem serviço do Windows, atalhos, alteração global de `PATH` ou bind externo. O cluster usará apenas loopback, SCRAM e credencial local fora do Git. O harness de autenticação foi implementado com ativação explícita apenas em `Development`; o Flutter só considera o token local em build não-release contra loopback. Os 44 testes Flutter passaram; validação .NET segue em andamento.
+- PostgreSQL portátil 17.11 operacional em `127.0.0.1:5432`, com cluster e senha cifrada por DPAPI sob `%LOCALAPPDATA%\VmsFinance`. As migrações `InitialCreate` e `AddHouseholdInvitations` foram aplicadas ao banco `vms_finance`; as cinco tabelas esperadas foram confirmadas. Backup em formato custom foi criado e restaurado com sucesso no banco temporário `vms_finance_restore_check`, removido ao final. Nenhuma porta externa, serviço do Windows ou segredo versionado foi criado.
+- MVP local validado de ponta a ponta pelo Flutter contra API e PostgreSQL reais: família criada, receita de `750000` centavos e despesa de `12550` centavos sincronizadas, SQLite fechado/reaberto com outbox vazia e itens `synced`, e PostgreSQL confirmado com 2 linhas e saldo `737450`. Validação final: 20 testes .NET; `flutter analyze` limpo; 44 testes Flutter mais 1 E2E local aprovados; backup/restauração repetidos com sucesso. API e PostgreSQL foram encerrados de forma limpa, preservando dados e backups locais.
 
 ## Próxima ação
 
-1. No próximo chat, deixar o MVP executável localmente: disponibilizar PostgreSQL sem expor senha, aplicar migrações e validar a API com persistência real.
-2. Criar um harness de autenticação estritamente `Development` para o fluxo local Flutter → API enquanto o tenant Auth0 não existe; ele deve falhar fechado fora de Development e nunca autorizar publicação.
-3. Executar o fluxo local completo: criar família, lançar receita/despesa, sincronizar, reabrir e confirmar persistência.
-4. Depois, conectar Auth0 real ao `AccessTokenProvider` quando os identificadores públicos estiverem disponíveis e validar PKCE em Android, iOS e Windows.
-5. Manter a Issue `#7` bloqueada até autenticação real e HTTPS estarem implementados e validados; não iniciar o túnel antes disso.
+1. No próximo chat, automatizar o E2E Flutter → API → PostgreSQL em CI com banco efêmero e credenciais exclusivas do job, sem publicar serviços.
+2. Depois, conectar Auth0 real ao `AccessTokenProvider` quando os identificadores públicos estiverem disponíveis e validar PKCE em Android, iOS e Windows.
+3. Manter a Issue `#7` bloqueada até autenticação real e HTTPS estarem implementados e validados; não iniciar o túnel antes disso.
 
 ## Restrições permanentes
 

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using System.Security.Claims;
 using System.Text.Json;
@@ -8,6 +9,7 @@ using VmsFinance.Application.Finance;
 using VmsFinance.Domain.Finance;
 using VmsFinance.Domain.Households;
 using VmsFinance.Infrastructure;
+using VmsFinance.Api;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,14 +19,41 @@ builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)));
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
-builder.Services
-    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
+var developmentAuthenticationEnabled =
+    builder.Configuration.GetValue<bool>("DevelopmentAuthentication:Enabled");
+if (developmentAuthenticationEnabled && !builder.Environment.IsDevelopment())
+{
+    throw new InvalidOperationException(
+        "Development authentication cannot be enabled outside the Development environment.");
+}
+
+if (developmentAuthenticationEnabled)
+{
+    var token = builder.Configuration["DevelopmentAuthentication:Token"];
+    var userId = builder.Configuration["DevelopmentAuthentication:UserId"];
+    if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(userId))
     {
-        options.Authority = builder.Configuration["Authentication:Authority"];
-        options.Audience = builder.Configuration["Authentication:Audience"];
-        options.RequireHttpsMetadata = true;
-    });
+        throw new InvalidOperationException(
+            "Development authentication requires a token and user id supplied outside source control.");
+    }
+
+    builder.Services
+        .AddAuthentication(DevelopmentAuthenticationDefaults.Scheme)
+        .AddScheme<AuthenticationSchemeOptions, DevelopmentAuthenticationHandler>(
+            DevelopmentAuthenticationDefaults.Scheme,
+            _ => { });
+}
+else
+{
+    builder.Services
+        .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(options =>
+        {
+            options.Authority = builder.Configuration["Authentication:Authority"];
+            options.Audience = builder.Configuration["Authentication:Audience"];
+            options.RequireHttpsMetadata = true;
+        });
+}
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
@@ -52,7 +81,10 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+if (!developmentAuthenticationEnabled)
+{
+    app.UseHttpsRedirection();
+}
 app.UseAuthentication();
 app.UseAuthorization();
 

@@ -7,6 +7,7 @@ import 'core/config/api_endpoint.dart';
 import 'core/database/app_database.dart';
 import 'core/database/finance_repository.dart';
 import 'core/sync/connectivity_monitor.dart';
+import 'core/sync/development_access_token_provider.dart';
 import 'core/sync/entry_sync_api.dart';
 import 'core/sync/finance_sync_service.dart';
 import 'core/sync/secure_storage_access_token_provider.dart';
@@ -50,8 +51,16 @@ class _VmsFinanceAppState extends State<VmsFinanceApp> {
   late final Dio? apiClient = apiEndpoint == null
       ? null
       : Dio(BaseOptions(baseUrl: apiEndpoint.toString()));
-  late final AccessTokenProvider tokenProvider =
-      const SecureStorageAccessTokenProvider(FlutterSecureStorage());
+  late final AccessTokenProvider tokenProvider = selectAccessTokenProvider(
+    releaseMode: kReleaseMode,
+    apiEndpoint: apiEndpoint,
+    developmentToken: const String.fromEnvironment(
+      'VMS_DEVELOPMENT_ACCESS_TOKEN',
+    ),
+    secureProvider: const SecureStorageAccessTokenProvider(
+      FlutterSecureStorage(),
+    ),
+  );
   late final FinanceSyncRunner? syncRunner =
       widget.syncRunner ?? _createConfiguredSyncRunner();
   late final HouseholdStore? householdStore =

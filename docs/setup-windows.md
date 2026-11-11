@@ -10,6 +10,14 @@
 
 ## Backend
 
+O PostgreSQL portátil validado fica fora do repositório e não registra serviço.
+Consulte `infra/README.md` para extrair os binários oficiais uma vez. Depois:
+
+```powershell
+.\infra\local-postgres.ps1 -Action Start
+.\infra\local-postgres.ps1 -Action Migrate
+```
+
 ```powershell
 dotnet restore VmsFinance.slnx
 dotnet tool restore
@@ -33,6 +41,19 @@ $env:Authentication__Authority='https://TENANT_REGION.auth0.com/'
 $env:Authentication__Audience='https://api.crowrvo.com.br'
 ```
 
+Enquanto o tenant não existir, o harness local exige ambiente `Development`,
+flag explícita, token fornecido fora do Git e identificador de usuário local:
+
+```powershell
+$env:DevelopmentAuthentication__Enabled='true'
+$env:DevelopmentAuthentication__Token='<token-aleatorio-da-sessao>'
+$env:DevelopmentAuthentication__UserId='local-developer'
+dotnet run --project src/backend/VmsFinance.Api --urls http://127.0.0.1:5080
+```
+
+A API recusa essa flag fora de `Development`. O token local nunca substitui o
+fluxo Auth0 em release ou em origens remotas.
+
 ## App
 
 ```powershell
@@ -40,7 +61,9 @@ cd apps/vms_finance_app
 flutter pub get
 dart run build_runner build --delete-conflicting-outputs
 flutter test
-flutter run -d windows --dart-define=VMS_API_BASE_URL=http://127.0.0.1:5080
+flutter run -d windows `
+  --dart-define=VMS_API_BASE_URL=http://127.0.0.1:5080 `
+  --dart-define=VMS_DEVELOPMENT_ACCESS_TOKEN=<mesmo-token-da-sessao>
 ```
 
 O app aceita HTTP somente para `localhost`/`127.0.0.1` em builds de desenvolvimento. Qualquer API remota exige uma origem HTTPS sem path, query, fragmento ou credenciais. Sem `VMS_API_BASE_URL`, a sincronização permanece explicitamente desativada.
