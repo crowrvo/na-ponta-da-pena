@@ -73,6 +73,7 @@ Concluir o VMS Finance de ponta a ponta, incluindo arquitetura, organização, f
 - Configuração e ação mínima documentadas em `docs/auth0-setup.md`; valores públicos reais ficam em `auth0.local.ps1`, ignorado pelo Git. `vcpkg` e dependências nativas foram instalados fora do repositório em `%LOCALAPPDATA%\VmsFinance\vcpkg`, sem serviço ou alteração global, e o app Windows compilou com sucesso.
 - Validação preparatória: 22 testes .NET; `flutter analyze` limpo; 48 testes Flutter aprovados e 1 E2E corretamente ignorado sem opt-in; build Windows Debug aprovado. Android não pôde ser compilado localmente por ausência de Android SDK, então o CI passou a compilar um APK Debug com identificadores reservados `.invalid`; iOS permanece dependente de macOS/Xcode. A execução do CI novo será confirmada após o push.
 - Primeira execução do CI da preparação Auth0 (`42984740187`): backend e E2E passaram; o job app passou geração/análise/testes, mas o build Android parou antes da compilação porque o runner selecionou Java 25.0.5. O job foi fixado em Temurin Java 17, versão exigida pelo SDK Auth0/Gradle, e será revalidado no próximo push.
+- CI `42985112563` aprovado integralmente após fixar Temurin 17: backend, 22 testes .NET, E2E local, geração/análise/48 testes Flutter e compilação do APK Android com placeholders reservados `.invalid` passaram. `setup-java` foi atualizado para v5 após o aviso de depreciação da v4; a Issue `#8` permanece `In Progress` aguardando somente os identificadores públicos e a validação interativa real.
 
 ## Próxima ação
 
