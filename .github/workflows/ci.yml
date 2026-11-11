@@ -151,7 +151,8 @@ jobs:
         run: |
           set -euo pipefail
           api_log="$RUNNER_TEMP/vms-finance-api.log"
-          dotnet run --project src/backend/VmsFinance.Api --no-restore >"$api_log" 2>&1 &
+          dotnet run --project src/backend/VmsFinance.Api --no-restore --no-launch-profile \
+            --urls http://127.0.0.1:5080 >"$api_log" 2>&1 &
           api_pid=$!
 
           cleanup() {
