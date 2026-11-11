@@ -55,14 +55,16 @@ Concluir o VMS Finance de ponta a ponta, incluindo arquitetura, organização, f
 - Validação integrada: geração Drift reproduzível, `flutter analyze` limpo, 41 testes Flutter e 18 testes .NET aprovados. O CI do commit anterior `efe4fb4` também concluiu com sucesso.
 - Entrega publicada no commit `cd87b18`. Issues `#3`, `#4`, `#5` e `#9` foram concluídas e movidas para `Done`. O Project agora tem 9 itens: 7 concluídos, `#6` em andamento e `#7`/`#8` em `Todo`; `#8` e `#7` preservam os bloqueios de autenticação e publicação.
 - Branch `main` protegida contra force-push e exclusão, com histórico linear obrigatório. Push direto regular continua permitido para não interromper a automação atual; checks obrigatórios serão ativados quando o fluxo migrar para pull requests.
+- CI do commit `eb0522b` aprovado integralmente: backend e app concluíram restore, geração, formatação, build, análise e testes no GitHub Actions.
+- Regra operacional solicitada pelo usuário: ao concluir uma tarefa, atualizar este handoff e iniciar a próxima em um novo chat; em retomadas agendadas, também abrir um novo chat. O foco imediato passou a ser um MVP local executável de ponta a ponta. A automação de 5 horas permanece como recuperação quando a execução parar por limite de tokens.
 
 ## Próxima ação
 
-1. Conectar o login Auth0 ao `AccessTokenProvider` quando os identificadores públicos do tenant/native app estiverem disponíveis; validar PKCE em Android, iOS e Windows.
-2. Adicionar testes de persistência PostgreSQL assim que uma instância local estiver disponível e aplicar as migrações.
-3. Implementar transferência/exclusão de família e uma interface de owner para criar/revogar convites e remover members.
-4. Preparar observabilidade sem dados financeiros, backup/restauração e distribuição interna.
-5. Manter a Issue `#7` bloqueada até autenticação e HTTPS estarem implementados e validados; não iniciar o túnel antes disso.
+1. No próximo chat, deixar o MVP executável localmente: disponibilizar PostgreSQL sem expor senha, aplicar migrações e validar a API com persistência real.
+2. Criar um harness de autenticação estritamente `Development` para o fluxo local Flutter → API enquanto o tenant Auth0 não existe; ele deve falhar fechado fora de Development e nunca autorizar publicação.
+3. Executar o fluxo local completo: criar família, lançar receita/despesa, sincronizar, reabrir e confirmar persistência.
+4. Depois, conectar Auth0 real ao `AccessTokenProvider` quando os identificadores públicos estiverem disponíveis e validar PKCE em Android, iOS e Windows.
+5. Manter a Issue `#7` bloqueada até autenticação real e HTTPS estarem implementados e validados; não iniciar o túnel antes disso.
 
 ## Restrições permanentes
 
