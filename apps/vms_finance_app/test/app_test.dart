@@ -1,6 +1,7 @@
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:vms_finance_app/core/auth/auth_session.dart';
 import 'package:vms_finance_app/core/database/app_database.dart';
 import 'package:vms_finance_app/core/sync/connectivity_monitor.dart';
 import 'package:vms_finance_app/features/households/data/household_repository.dart';
@@ -14,7 +15,11 @@ void main() {
     final database = AppDatabase.forTesting(NativeDatabase.memory());
 
     await tester.pumpWidget(
-      VmsFinanceApp(database: database, closeDatabaseOnDispose: false),
+      VmsFinanceApp(
+        database: database,
+        closeDatabaseOnDispose: false,
+        authenticationSession: _AuthenticatedSession(),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -41,6 +46,7 @@ void main() {
         closeDatabaseOnDispose: false,
         connectivityMonitor: const _OnlineConnectivity(),
         householdStore: const _ReadyHouseholdStore(),
+        authenticationSession: _AuthenticatedSession(),
       ),
     );
     await tester.pumpAndSettle();
@@ -62,6 +68,30 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1));
     await closeFuture;
   });
+}
+
+class _AuthenticatedSession extends ChangeNotifier
+    implements AuthenticationSession {
+  @override
+  String? errorMessage;
+
+  @override
+  AuthSessionStatus status = AuthSessionStatus.authenticated;
+
+  @override
+  String? userLabel = 'Test User';
+
+  @override
+  Future<void> initialize() async {}
+
+  @override
+  Future<void> login() async {}
+
+  @override
+  Future<void> logout() async {}
+
+  @override
+  Future<String?> readAccessToken() async => 'test-token';
 }
 
 class _OnlineConnectivity implements ConnectivityMonitor {

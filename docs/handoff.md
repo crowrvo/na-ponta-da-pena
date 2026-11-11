@@ -75,11 +75,15 @@ Concluir o VMS Finance de ponta a ponta, incluindo arquitetura, organização, f
 - Primeira execução do CI da preparação Auth0 (`42984740187`): backend e E2E passaram; o job app passou geração/análise/testes, mas o build Android parou antes da compilação porque o runner selecionou Java 25.0.5. O job foi fixado em Temurin Java 17, versão exigida pelo SDK Auth0/Gradle, e será revalidado no próximo push.
 - CI `42985112563` aprovado integralmente após fixar Temurin 17: backend, 22 testes .NET, E2E local, geração/análise/48 testes Flutter e compilação do APK Android com placeholders reservados `.invalid` passaram. `setup-java` foi atualizado para v5 após o aviso de depreciação da v4; a Issue `#8` permanece `In Progress` aguardando somente os identificadores públicos e a validação interativa real.
 - CI final `42986035203` do commit `83aac16` confirmado como aprovado integralmente: jobs `backend`, `app` e `local-mvp-e2e` concluíram com sucesso; a compilação Android Auth0 usou Temurin 17 e `actions/setup-java@v5`. O Project permanece coerente, com a Issue `#8` aberta em `In Progress` e a Issue `#7` em `Todo`. Todas as verificações seguras que independem de identificadores reais estão concluídas; não houve publicação, túnel, DNS ou criação de valores Auth0 fictícios.
+- Tenant Auth0 real configurado no plano gratuito: Native Application `Na Ponta da Pena`, domínio público `dev-ckyvocrezlj564zh.us.auth0.com`, audience `https://api.crowrvo.com.br`, callbacks Android/iOS/Windows e logout correspondentes, validade máxima e rotação de refresh token. A `VMS Finance API` usa RS256, autorização delegada por aplicação e bloqueia acesso client-credentials; o grant delegado foi criado somente para o aplicativo nativo.
+- Os identificadores públicos reais foram gravados em `auth0.local.ps1`, confirmado como ignorado pelo Git; nenhum client secret, token ou senha foi copiado. A descoberta OIDC/issuer/token endpoint/JWKS respondeu por HTTPS. O build Windows Debug com os valores reais foi aprovado, assim como 22 testes .NET, `flutter analyze` e 48 testes Flutter (1 E2E local ignorado). Os testes de widget agora injetam uma sessão controlada e permanecem determinísticos mesmo com Auth0 configurado no ambiente.
+- A API real iniciou em `Production` somente em `https://localhost:7080`, mas o certificado HTTPS de desenvolvimento existe e ainda precisa ser confiado pelo usuário no diálogo seguro do Windows antes do teste TLS sem bypass. Nenhum túnel, DNS ou endpoint público foi iniciado.
 
 ## Próxima ação
 
-1. Para concluir a Issue `#8`, o usuário precisa executar somente a seção “Ação mínima no Auth0” de `docs/auth0-setup.md` e disponibilizar localmente domain, Native Application client ID, API audience e callbacks exatos; então validar login/logout/renovação e 401/200 reais em loopback nos dispositivos disponíveis.
-2. Manter a Issue `#7` bloqueada até a Issue `#8` estar concluída e HTTPS real estar validado; não iniciar o túnel nem alterar DNS antes disso.
+1. Confiar o certificado HTTPS de desenvolvimento no diálogo seguro do Windows e repetir a validação sem ignorar TLS: API Auth0 em loopback deve responder 401 sem token e 200 com token real.
+2. Executar login/logout/renovação interativos no Flutter Windows e, quando houver dispositivo disponível, Android/iOS; só então concluir a Issue `#8`.
+3. Manter a Issue `#7` bloqueada até a Issue `#8` estar concluída e HTTPS real estar validado; não iniciar o túnel nem alterar DNS antes disso.
 
 ## Restrições permanentes
 

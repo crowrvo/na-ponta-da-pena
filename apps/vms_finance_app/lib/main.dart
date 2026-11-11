@@ -30,6 +30,7 @@ class VmsFinanceApp extends StatefulWidget {
     this.syncRunner,
     this.connectivityMonitor,
     this.householdStore,
+    this.authenticationSession,
   });
 
   final AppDatabase database;
@@ -37,6 +38,7 @@ class VmsFinanceApp extends StatefulWidget {
   final FinanceSyncRunner? syncRunner;
   final ConnectivityMonitor? connectivityMonitor;
   final HouseholdStore? householdStore;
+  final AuthenticationSession? authenticationSession;
 
   @override
   State<VmsFinanceApp> createState() => _VmsFinanceAppState();
@@ -56,8 +58,8 @@ class _VmsFinanceAppState extends State<VmsFinanceApp> {
       : Dio(BaseOptions(baseUrl: apiEndpoint.toString()));
   late final AuthConfiguration authConfiguration =
       AuthConfiguration.fromEnvironment();
-  late final Auth0AuthenticationSession? authSession =
-      _createAuthenticationSession();
+  late final AuthenticationSession? authSession =
+      widget.authenticationSession ?? _createAuthenticationSession();
   late final AccessTokenProvider tokenProvider = selectAccessTokenProvider(
     releaseMode: kReleaseMode,
     apiEndpoint: apiEndpoint,
@@ -107,7 +109,9 @@ class _VmsFinanceAppState extends State<VmsFinanceApp> {
 
   @override
   void dispose() {
-    authSession?.dispose();
+    if (authSession case final Auth0AuthenticationSession session) {
+      session.dispose();
+    }
     if (widget.closeDatabaseOnDispose) {
       widget.database.close();
     }
