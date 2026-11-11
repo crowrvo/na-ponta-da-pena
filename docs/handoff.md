@@ -74,12 +74,12 @@ Concluir o VMS Finance de ponta a ponta, incluindo arquitetura, organização, f
 - Validação preparatória: 22 testes .NET; `flutter analyze` limpo; 48 testes Flutter aprovados e 1 E2E corretamente ignorado sem opt-in; build Windows Debug aprovado. Android não pôde ser compilado localmente por ausência de Android SDK, então o CI passou a compilar um APK Debug com identificadores reservados `.invalid`; iOS permanece dependente de macOS/Xcode. A execução do CI novo será confirmada após o push.
 - Primeira execução do CI da preparação Auth0 (`42984740187`): backend e E2E passaram; o job app passou geração/análise/testes, mas o build Android parou antes da compilação porque o runner selecionou Java 25.0.5. O job foi fixado em Temurin Java 17, versão exigida pelo SDK Auth0/Gradle, e será revalidado no próximo push.
 - CI `42985112563` aprovado integralmente após fixar Temurin 17: backend, 22 testes .NET, E2E local, geração/análise/48 testes Flutter e compilação do APK Android com placeholders reservados `.invalid` passaram. `setup-java` foi atualizado para v5 após o aviso de depreciação da v4; a Issue `#8` permanece `In Progress` aguardando somente os identificadores públicos e a validação interativa real.
+- CI final `42986035203` do commit `83aac16` confirmado como aprovado integralmente: jobs `backend`, `app` e `local-mvp-e2e` concluíram com sucesso; a compilação Android Auth0 usou Temurin 17 e `actions/setup-java@v5`. O Project permanece coerente, com a Issue `#8` aberta em `In Progress` e a Issue `#7` em `Todo`. Todas as verificações seguras que independem de identificadores reais estão concluídas; não houve publicação, túnel, DNS ou criação de valores Auth0 fictícios.
 
 ## Próxima ação
 
-1. Confirmar o CI do commit desta preparação, em especial a compilação Android.
-2. Para concluir a Issue `#8`, o usuário precisa executar somente a seção “Ação mínima no Auth0” de `docs/auth0-setup.md` e disponibilizar localmente domain, Native Application client ID, API audience e callbacks exatos; então validar login/logout/renovação e 401/200 reais em loopback nos dispositivos disponíveis.
-3. Manter a Issue `#7` bloqueada até a Issue `#8` estar concluída e HTTPS real estar validado; não iniciar o túnel nem alterar DNS antes disso.
+1. Para concluir a Issue `#8`, o usuário precisa executar somente a seção “Ação mínima no Auth0” de `docs/auth0-setup.md` e disponibilizar localmente domain, Native Application client ID, API audience e callbacks exatos; então validar login/logout/renovação e 401/200 reais em loopback nos dispositivos disponíveis.
+2. Manter a Issue `#7` bloqueada até a Issue `#8` estar concluída e HTTPS real estar validado; não iniciar o túnel nem alterar DNS antes disso.
 
 ## Restrições permanentes
 
